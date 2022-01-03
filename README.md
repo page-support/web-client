@@ -36,17 +36,17 @@ In your javascript application
 // The Bot client code, installed from npm
 import Bot from "page-support-bot"; 
 
-// Your Bot client definition. Download it from publisher.page.support 
-// and save to your application's repository if you want it under
-// version control, or load from static file server if not
-import botConfig from "/path/to/page.support.botconfig.js"
+// Your Bot's configuration file that defines its behavior. Download it from  
+// publisher.page.support and save to your application's repository if you want 
+// it under version control (encouraged), or load from static file server if not. 
+import botConfig from "/your-path/to/page.support.botconfig.js"
 ```
 
-Now copy the page-support-bot-bundle.css file from the installed npm module in node_modules/dist/page-support-bot-bundle.css to the public folder in your project root. Then link to that file in the `<head>` tag for the page where you are including the Bot component:
-
-```
-<link rel="stylesheet" type="text/css" href="/page-support-bot-bundle.css" />
-```
+Bot imports the stylesheet it needs from the node_modules directory it was 
+installed into: `page-support-bot/dist/page-support-bot-bundle.css`. 
+That css file is imported via an @import command in the <style> section of Bot.svelte. 
+Your bundler should compile that file along with the rest of your site's css 
+into one file so no <link> to that file is needed.
 
 In your HTML we can now add the Bot component
 
