@@ -30,7 +30,13 @@ There are several ways to integrate Bot into your website. In all cases, Bot nee
 npm install page-support-bot
 ```
 
-In your javascript application
+Now add it to your package.json under "dependencies"
+
+```
+"page-support-bot": "1.0.0"
+```
+
+Import into your javascript application
 
 ```
 // The Bot client code, installed from npm

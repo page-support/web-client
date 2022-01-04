@@ -81,7 +81,8 @@ botConfig. For example:
   import { ENDINGS } from "../dialog/dialog.js";
   import { BUILT_IN_REPLIES } from "../state/BuiltInReplies.js";
   import { dropLast } from "ramda";
-  import Marked from "../../node_modules/marked/lib/marked.esm.js";
+  // @rollup/plugin-commonjs enables the conversion to ES6 modules
+  const marked = require('marked'); 
   import { slotTypeEnum } from "../state/BotConfig.js";
   import MultiSelect from "./MultiSelect.svelte";
   import { afterUpdate, tick } from "svelte";
@@ -578,7 +579,7 @@ botConfig. For example:
     <div id="conversationHistory" class="flex flex-col space-y-4 mb-4">
       <!-- render the optional introduction for this frame -->
       <div id="frameIntroduction">
-        {@html Marked(frameIntroduction)}
+        {@html marked(frameIntroduction)}
       </div>
 
       <!-- render conversation history NOT including latest ask -->
@@ -590,7 +591,7 @@ botConfig. For example:
         >
           <!-- Bot output in past rounds -->
           <p id="bot-ask-text-completed" class="text-l mr-4 sm:mr-12 ">
-            {@html Marked(slot.ask)}
+            {@html marked(slot.ask)}
           </p>
 
           <!-- User input in past rounds -->
@@ -630,7 +631,7 @@ botConfig. For example:
       <!-- Bot's md text rendered to html -->
       <div id="currentAsk" class="mr-4 sm:mr-12">
         <p class="text-l">
-          {@html Marked(completedRounds[completedRounds.length - 1].slot.ask)}
+          {@html marked(completedRounds[completedRounds.length - 1].slot.ask)}
         </p>
       </div>
 
