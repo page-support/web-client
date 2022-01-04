@@ -1,10 +1,12 @@
 {
   "name": "page-support-bot",
-  "description": "Page.Support bot configuration standard and bot reference implementation",
+  "description": "page.support web client reference implementation",
   "keywords": [
     "chatbot",
     "GUI",
-    "customer support"
+    "customer support",
+    "web client",
+    "automation"
   ],
   "homepage": "https://github.com/page-support/bot#readme",
   "repository": {

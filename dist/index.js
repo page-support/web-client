@@ -4270,7 +4270,7 @@
      *   botCosmetics: the botConfig property that styles the GUI 
      */
     const newConversation = ({ frames = [], 
-                               currentFrame = 0,
+                               currentFrame = '',
                                replies = {}, 
                                botCosmetics = {}
                              }) => ({
