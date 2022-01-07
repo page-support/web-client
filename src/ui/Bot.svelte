@@ -81,8 +81,8 @@ botConfig. For example:
   import { ENDINGS } from "../dialog/dialog.js";
   import { BUILT_IN_REPLIES } from "../state/BuiltInReplies.js";
   import { dropLast } from "ramda";
-  // @rollup/plugin-commonjs enables the conversion to ES6 modules
-  const marked = require('marked'); 
+  
+  import { marked } from 'marked'; 
   import { slotTypeEnum } from "../state/BotConfig.js";
   import MultiSelect from "./MultiSelect.svelte";
   import { afterUpdate, tick } from "svelte";

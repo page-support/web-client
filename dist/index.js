@@ -146,22 +146,40 @@
     function add_render_callback(fn) {
         render_callbacks.push(fn);
     }
-    let flushing = false;
+    // flush() calls callbacks in this order:
+    // 1. All beforeUpdate callbacks, in order: parents before children
+    // 2. All bind:this callbacks, in reverse order: children before parents.
+    // 3. All afterUpdate callbacks, in order: parents before children. EXCEPT
+    //    for afterUpdates called during the initial onMount, which are called in
+    //    reverse order: children before parents.
+    // Since callbacks might update component values, which could trigger another
+    // call to flush(), the following steps guard against this:
+    // 1. During beforeUpdate, any updated components will be added to the
+    //    dirty_components array and will cause a reentrant call to flush(). Because
+    //    the flush index is kept outside the function, the reentrant call will pick
+    //    up where the earlier call left off and go through all dirty components. The
+    //    current_component value is saved and restored so that the reentrant call will
+    //    not interfere with the "parent" flush() call.
+    // 2. bind:this callbacks cannot trigger new flush() calls.
+    // 3. During afterUpdate, any updated components will NOT have their afterUpdate
+    //    callback called a second time; the seen_callbacks set, outside the flush()
+    //    function, guarantees this behavior.
     const seen_callbacks = new Set();
+    let flushidx = 0; // Do *not* move this inside the flush() function
     function flush() {
-        if (flushing)
-            return;
-        flushing = true;
+        const saved_component = current_component;
         do {
             // first, call beforeUpdate functions
             // and update components
-            for (let i = 0; i < dirty_components.length; i += 1) {
-                const component = dirty_components[i];
+            while (flushidx < dirty_components.length) {
+                const component = dirty_components[flushidx];
+                flushidx++;
                 set_current_component(component);
                 update(component.$$);
             }
             set_current_component(null);
             dirty_components.length = 0;
+            flushidx = 0;
             while (binding_callbacks.length)
                 binding_callbacks.pop()();
             // then, once components are updated, call
@@ -181,8 +199,8 @@
             flush_callbacks.pop()();
         }
         update_scheduled = false;
-        flushing = false;
         seen_callbacks.clear();
+        set_current_component(saved_component);
     }
     function update($$) {
         if ($$.fragment !== null) {
@@ -376,11 +394,11 @@
     const REMOTE_CONFIG_URL = 'TBD';
 
     // botConfigVersion version will be used to compare against the botConfig file version if
-    // 1.0.0 is NOT set to a version string. Edit botConfigVersion
+    // 1.0.2 is NOT set to a version string. Edit botConfigVersion
     // if you are using your own build pipeline and need to adapt to a higher
     // version botConfig. 
     // See versionCompatible() function and the README for details.
-    const pkgBotVersion = '1.0.0';
+    const pkgBotVersion = '1.0.2';
     const botVersion = '1.0.0';
 
 
@@ -479,7 +497,7 @@
      * caller or parent should use try block
      */
     function versionCompatible(version) {
-      // if deployer of Bot is using `npm run build` 1.0.0 will
+      // if deployer of Bot is using `npm run build` 1.0.2 will
       // be set by rollup. If its not set, the constant botConfigVersion
       // at the top of this file will be used. If your build pipeline doesn't use 
       // npm run build, e.g. if you are building Bot into your own website with
@@ -2234,7 +2252,7 @@
       return Math.log(x) / Math.LN2;
     }
 
-    function Parser$1(options) {
+    function Parser$2(options) {
       this.options = options || {};
       this.unaryOps = {
         sin: Math.sin,
@@ -2324,7 +2342,7 @@
       };
     }
 
-    Parser$1.prototype.parse = function (expr) {
+    Parser$2.prototype.parse = function (expr) {
       var instr = [];
       var parserState = new ParserState(
         this,
@@ -2338,17 +2356,17 @@
       return new Expression(instr, this);
     };
 
-    Parser$1.prototype.evaluate = function (expr, variables) {
+    Parser$2.prototype.evaluate = function (expr, variables) {
       return this.parse(expr).evaluate(variables);
     };
 
-    var sharedParser = new Parser$1();
+    var sharedParser = new Parser$2();
 
-    Parser$1.parse = function (expr) {
+    Parser$2.parse = function (expr) {
       return sharedParser.parse(expr);
     };
 
-    Parser$1.evaluate = function (expr, variables) {
+    Parser$2.evaluate = function (expr, variables) {
       return sharedParser.parse(expr).evaluate(variables);
     };
 
@@ -2381,7 +2399,7 @@
       return optionNameMap.hasOwnProperty(op) ? optionNameMap[op] : op;
     }
 
-    Parser$1.prototype.isOperatorEnabled = function (op) {
+    Parser$2.prototype.isOperatorEnabled = function (op) {
       var optionName = getOptionName(op);
       var operators = this.options.operators || {};
 
@@ -2401,7 +2419,7 @@
 
     // Backwards compatibility
     var index = {
-      Parser: Parser$1,
+      Parser: Parser$2,
       Expression: Expression
     };
 
@@ -2409,7 +2427,7 @@
         __proto__: null,
         'default': index,
         Expression: Expression,
-        Parser: Parser$1
+        Parser: Parser$2
     });
 
     function getAugmentedNamespace(n) {
@@ -4060,8 +4078,8 @@
 
     // Globals in this module used for parser init
     // See https://github.com/silentmatt/expr-eval#parserevaluateexpression-string-variables-object
-    const Parser = require$$0.Parser;
-    const triggerParser = new Parser();
+    const Parser$1 = require$$0.Parser;
+    const triggerParser = new Parser$1();
 
 
 
@@ -4625,6 +4643,2694 @@
         return returnObj;
       }
 
+    /**
+     * marked - a markdown parser
+     * Copyright (c) 2011-2022, Christopher Jeffrey. (MIT Licensed)
+     * https://github.com/markedjs/marked
+     */
+
+    /**
+     * DO NOT EDIT THIS FILE
+     * The code in this file is generated from files in ./src/
+     */
+
+    function getDefaults() {
+      return {
+        baseUrl: null,
+        breaks: false,
+        extensions: null,
+        gfm: true,
+        headerIds: true,
+        headerPrefix: '',
+        highlight: null,
+        langPrefix: 'language-',
+        mangle: true,
+        pedantic: false,
+        renderer: null,
+        sanitize: false,
+        sanitizer: null,
+        silent: false,
+        smartLists: false,
+        smartypants: false,
+        tokenizer: null,
+        walkTokens: null,
+        xhtml: false
+      };
+    }
+
+    let defaults = getDefaults();
+
+    function changeDefaults(newDefaults) {
+      defaults = newDefaults;
+    }
+
+    /**
+     * Helpers
+     */
+    const escapeTest = /[&<>"']/;
+    const escapeReplace = /[&<>"']/g;
+    const escapeTestNoEncode = /[<>"']|&(?!#?\w+;)/;
+    const escapeReplaceNoEncode = /[<>"']|&(?!#?\w+;)/g;
+    const escapeReplacements = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    const getEscapeReplacement = (ch) => escapeReplacements[ch];
+    function escape(html, encode) {
+      if (encode) {
+        if (escapeTest.test(html)) {
+          return html.replace(escapeReplace, getEscapeReplacement);
+        }
+      } else {
+        if (escapeTestNoEncode.test(html)) {
+          return html.replace(escapeReplaceNoEncode, getEscapeReplacement);
+        }
+      }
+
+      return html;
+    }
+
+    const unescapeTest = /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig;
+
+    function unescape(html) {
+      // explicitly match decimal, hex, and named HTML entities
+      return html.replace(unescapeTest, (_, n) => {
+        n = n.toLowerCase();
+        if (n === 'colon') return ':';
+        if (n.charAt(0) === '#') {
+          return n.charAt(1) === 'x'
+            ? String.fromCharCode(parseInt(n.substring(2), 16))
+            : String.fromCharCode(+n.substring(1));
+        }
+        return '';
+      });
+    }
+
+    const caret = /(^|[^\[])\^/g;
+    function edit(regex, opt) {
+      regex = regex.source || regex;
+      opt = opt || '';
+      const obj = {
+        replace: (name, val) => {
+          val = val.source || val;
+          val = val.replace(caret, '$1');
+          regex = regex.replace(name, val);
+          return obj;
+        },
+        getRegex: () => {
+          return new RegExp(regex, opt);
+        }
+      };
+      return obj;
+    }
+
+    const nonWordAndColonTest = /[^\w:]/g;
+    const originIndependentUrl = /^$|^[a-z][a-z0-9+.-]*:|^[?#]/i;
+    function cleanUrl(sanitize, base, href) {
+      if (sanitize) {
+        let prot;
+        try {
+          prot = decodeURIComponent(unescape(href))
+            .replace(nonWordAndColonTest, '')
+            .toLowerCase();
+        } catch (e) {
+          return null;
+        }
+        if (prot.indexOf('javascript:') === 0 || prot.indexOf('vbscript:') === 0 || prot.indexOf('data:') === 0) {
+          return null;
+        }
+      }
+      if (base && !originIndependentUrl.test(href)) {
+        href = resolveUrl(base, href);
+      }
+      try {
+        href = encodeURI(href).replace(/%25/g, '%');
+      } catch (e) {
+        return null;
+      }
+      return href;
+    }
+
+    const baseUrls = {};
+    const justDomain = /^[^:]+:\/*[^/]*$/;
+    const protocol = /^([^:]+:)[\s\S]*$/;
+    const domain = /^([^:]+:\/*[^/]*)[\s\S]*$/;
+
+    function resolveUrl(base, href) {
+      if (!baseUrls[' ' + base]) {
+        // we can ignore everything in base after the last slash of its path component,
+        // but we might need to add _that_
+        // https://tools.ietf.org/html/rfc3986#section-3
+        if (justDomain.test(base)) {
+          baseUrls[' ' + base] = base + '/';
+        } else {
+          baseUrls[' ' + base] = rtrim(base, '/', true);
+        }
+      }
+      base = baseUrls[' ' + base];
+      const relativeBase = base.indexOf(':') === -1;
+
+      if (href.substring(0, 2) === '//') {
+        if (relativeBase) {
+          return href;
+        }
+        return base.replace(protocol, '$1') + href;
+      } else if (href.charAt(0) === '/') {
+        if (relativeBase) {
+          return href;
+        }
+        return base.replace(domain, '$1') + href;
+      } else {
+        return base + href;
+      }
+    }
+
+    const noopTest = { exec: function noopTest() {} };
+
+    function merge(obj) {
+      let i = 1,
+        target,
+        key;
+
+      for (; i < arguments.length; i++) {
+        target = arguments[i];
+        for (key in target) {
+          if (Object.prototype.hasOwnProperty.call(target, key)) {
+            obj[key] = target[key];
+          }
+        }
+      }
+
+      return obj;
+    }
+
+    function splitCells(tableRow, count) {
+      // ensure that every cell-delimiting pipe has a space
+      // before it to distinguish it from an escaped pipe
+      const row = tableRow.replace(/\|/g, (match, offset, str) => {
+          let escaped = false,
+            curr = offset;
+          while (--curr >= 0 && str[curr] === '\\') escaped = !escaped;
+          if (escaped) {
+            // odd number of slashes means | is escaped
+            // so we leave it alone
+            return '|';
+          } else {
+            // add space before unescaped |
+            return ' |';
+          }
+        }),
+        cells = row.split(/ \|/);
+      let i = 0;
+
+      // First/last cell in a row cannot be empty if it has no leading/trailing pipe
+      if (!cells[0].trim()) { cells.shift(); }
+      if (!cells[cells.length - 1].trim()) { cells.pop(); }
+
+      if (cells.length > count) {
+        cells.splice(count);
+      } else {
+        while (cells.length < count) cells.push('');
+      }
+
+      for (; i < cells.length; i++) {
+        // leading or trailing whitespace is ignored per the gfm spec
+        cells[i] = cells[i].trim().replace(/\\\|/g, '|');
+      }
+      return cells;
+    }
+
+    // Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
+    // /c*$/ is vulnerable to REDOS.
+    // invert: Remove suffix of non-c chars instead. Default falsey.
+    function rtrim(str, c, invert) {
+      const l = str.length;
+      if (l === 0) {
+        return '';
+      }
+
+      // Length of suffix matching the invert condition.
+      let suffLen = 0;
+
+      // Step left until we fail to match the invert condition.
+      while (suffLen < l) {
+        const currChar = str.charAt(l - suffLen - 1);
+        if (currChar === c && !invert) {
+          suffLen++;
+        } else if (currChar !== c && invert) {
+          suffLen++;
+        } else {
+          break;
+        }
+      }
+
+      return str.substr(0, l - suffLen);
+    }
+
+    function findClosingBracket(str, b) {
+      if (str.indexOf(b[1]) === -1) {
+        return -1;
+      }
+      const l = str.length;
+      let level = 0,
+        i = 0;
+      for (; i < l; i++) {
+        if (str[i] === '\\') {
+          i++;
+        } else if (str[i] === b[0]) {
+          level++;
+        } else if (str[i] === b[1]) {
+          level--;
+          if (level < 0) {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
+    function checkSanitizeDeprecation(opt) {
+      if (opt && opt.sanitize && !opt.silent) {
+        console.warn('marked(): sanitize and sanitizer parameters are deprecated since version 0.7.0, should not be used and will be removed in the future. Read more here: https://marked.js.org/#/USING_ADVANCED.md#options');
+      }
+    }
+
+    // copied from https://stackoverflow.com/a/5450113/806777
+    function repeatString(pattern, count) {
+      if (count < 1) {
+        return '';
+      }
+      let result = '';
+      while (count > 1) {
+        if (count & 1) {
+          result += pattern;
+        }
+        count >>= 1;
+        pattern += pattern;
+      }
+      return result + pattern;
+    }
+
+    function outputLink(cap, link, raw, lexer) {
+      const href = link.href;
+      const title = link.title ? escape(link.title) : null;
+      const text = cap[1].replace(/\\([\[\]])/g, '$1');
+
+      if (cap[0].charAt(0) !== '!') {
+        lexer.state.inLink = true;
+        const token = {
+          type: 'link',
+          raw,
+          href,
+          title,
+          text,
+          tokens: lexer.inlineTokens(text, [])
+        };
+        lexer.state.inLink = false;
+        return token;
+      } else {
+        return {
+          type: 'image',
+          raw,
+          href,
+          title,
+          text: escape(text)
+        };
+      }
+    }
+
+    function indentCodeCompensation(raw, text) {
+      const matchIndentToCode = raw.match(/^(\s+)(?:```)/);
+
+      if (matchIndentToCode === null) {
+        return text;
+      }
+
+      const indentToCode = matchIndentToCode[1];
+
+      return text
+        .split('\n')
+        .map(node => {
+          const matchIndentInNode = node.match(/^\s+/);
+          if (matchIndentInNode === null) {
+            return node;
+          }
+
+          const [indentInNode] = matchIndentInNode;
+
+          if (indentInNode.length >= indentToCode.length) {
+            return node.slice(indentToCode.length);
+          }
+
+          return node;
+        })
+        .join('\n');
+    }
+
+    /**
+     * Tokenizer
+     */
+    class Tokenizer {
+      constructor(options) {
+        this.options = options || defaults;
+      }
+
+      space(src) {
+        const cap = this.rules.block.newline.exec(src);
+        if (cap && cap[0].length > 0) {
+          return {
+            type: 'space',
+            raw: cap[0]
+          };
+        }
+      }
+
+      code(src) {
+        const cap = this.rules.block.code.exec(src);
+        if (cap) {
+          const text = cap[0].replace(/^ {1,4}/gm, '');
+          return {
+            type: 'code',
+            raw: cap[0],
+            codeBlockStyle: 'indented',
+            text: !this.options.pedantic
+              ? rtrim(text, '\n')
+              : text
+          };
+        }
+      }
+
+      fences(src) {
+        const cap = this.rules.block.fences.exec(src);
+        if (cap) {
+          const raw = cap[0];
+          const text = indentCodeCompensation(raw, cap[3] || '');
+
+          return {
+            type: 'code',
+            raw,
+            lang: cap[2] ? cap[2].trim() : cap[2],
+            text
+          };
+        }
+      }
+
+      heading(src) {
+        const cap = this.rules.block.heading.exec(src);
+        if (cap) {
+          let text = cap[2].trim();
+
+          // remove trailing #s
+          if (/#$/.test(text)) {
+            const trimmed = rtrim(text, '#');
+            if (this.options.pedantic) {
+              text = trimmed.trim();
+            } else if (!trimmed || / $/.test(trimmed)) {
+              // CommonMark requires space before trailing #s
+              text = trimmed.trim();
+            }
+          }
+
+          const token = {
+            type: 'heading',
+            raw: cap[0],
+            depth: cap[1].length,
+            text: text,
+            tokens: []
+          };
+          this.lexer.inline(token.text, token.tokens);
+          return token;
+        }
+      }
+
+      hr(src) {
+        const cap = this.rules.block.hr.exec(src);
+        if (cap) {
+          return {
+            type: 'hr',
+            raw: cap[0]
+          };
+        }
+      }
+
+      blockquote(src) {
+        const cap = this.rules.block.blockquote.exec(src);
+        if (cap) {
+          const text = cap[0].replace(/^ *> ?/gm, '');
+
+          return {
+            type: 'blockquote',
+            raw: cap[0],
+            tokens: this.lexer.blockTokens(text, []),
+            text
+          };
+        }
+      }
+
+      list(src) {
+        let cap = this.rules.block.list.exec(src);
+        if (cap) {
+          let raw, istask, ischecked, indent, i, blankLine, endsWithBlankLine,
+            line, nextLine, rawLine, itemContents, endEarly;
+
+          let bull = cap[1].trim();
+          const isordered = bull.length > 1;
+
+          const list = {
+            type: 'list',
+            raw: '',
+            ordered: isordered,
+            start: isordered ? +bull.slice(0, -1) : '',
+            loose: false,
+            items: []
+          };
+
+          bull = isordered ? `\\d{1,9}\\${bull.slice(-1)}` : `\\${bull}`;
+
+          if (this.options.pedantic) {
+            bull = isordered ? bull : '[*+-]';
+          }
+
+          // Get next list item
+          const itemRegex = new RegExp(`^( {0,3}${bull})((?: [^\\n]*)?(?:\\n|$))`);
+
+          // Check if current bullet point can start a new List Item
+          while (src) {
+            endEarly = false;
+            if (!(cap = itemRegex.exec(src))) {
+              break;
+            }
+
+            if (this.rules.block.hr.test(src)) { // End list if bullet was actually HR (possibly move into itemRegex?)
+              break;
+            }
+
+            raw = cap[0];
+            src = src.substring(raw.length);
+
+            line = cap[2].split('\n', 1)[0];
+            nextLine = src.split('\n', 1)[0];
+
+            if (this.options.pedantic) {
+              indent = 2;
+              itemContents = line.trimLeft();
+            } else {
+              indent = cap[2].search(/[^ ]/); // Find first non-space char
+              indent = indent > 4 ? 1 : indent; // Treat indented code blocks (> 4 spaces) as having only 1 indent
+              itemContents = line.slice(indent);
+              indent += cap[1].length;
+            }
+
+            blankLine = false;
+
+            if (!line && /^ *$/.test(nextLine)) { // Items begin with at most one blank line
+              raw += nextLine + '\n';
+              src = src.substring(nextLine.length + 1);
+              endEarly = true;
+            }
+
+            if (!endEarly) {
+              const nextBulletRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}(?:[*+-]|\\d{1,9}[.)])`);
+
+              // Check if following lines should be included in List Item
+              while (src) {
+                rawLine = src.split('\n', 1)[0];
+                line = rawLine;
+
+                // Re-align to follow commonmark nesting rules
+                if (this.options.pedantic) {
+                  line = line.replace(/^ {1,4}(?=( {4})*[^ ])/g, '  ');
+                }
+
+                // End list item if found start of new bullet
+                if (nextBulletRegex.test(line)) {
+                  break;
+                }
+
+                if (line.search(/[^ ]/) >= indent || !line.trim()) { // Dedent if possible
+                  itemContents += '\n' + line.slice(indent);
+                } else if (!blankLine) { // Until blank line, item doesn't need indentation
+                  itemContents += '\n' + line;
+                } else { // Otherwise, improper indentation ends this item
+                  break;
+                }
+
+                if (!blankLine && !line.trim()) { // Check if current line is blank
+                  blankLine = true;
+                }
+
+                raw += rawLine + '\n';
+                src = src.substring(rawLine.length + 1);
+              }
+            }
+
+            if (!list.loose) {
+              // If the previous item ended with a blank line, the list is loose
+              if (endsWithBlankLine) {
+                list.loose = true;
+              } else if (/\n *\n *$/.test(raw)) {
+                endsWithBlankLine = true;
+              }
+            }
+
+            // Check for task list items
+            if (this.options.gfm) {
+              istask = /^\[[ xX]\] /.exec(itemContents);
+              if (istask) {
+                ischecked = istask[0] !== '[ ] ';
+                itemContents = itemContents.replace(/^\[[ xX]\] +/, '');
+              }
+            }
+
+            list.items.push({
+              type: 'list_item',
+              raw: raw,
+              task: !!istask,
+              checked: ischecked,
+              loose: false,
+              text: itemContents
+            });
+
+            list.raw += raw;
+          }
+
+          // Do not consume newlines at end of final item. Alternatively, make itemRegex *start* with any newlines to simplify/speed up endsWithBlankLine logic
+          list.items[list.items.length - 1].raw = raw.trimRight();
+          list.items[list.items.length - 1].text = itemContents.trimRight();
+          list.raw = list.raw.trimRight();
+
+          const l = list.items.length;
+
+          // Item child tokens handled here at end because we needed to have the final item to trim it first
+          for (i = 0; i < l; i++) {
+            this.lexer.state.top = false;
+            list.items[i].tokens = this.lexer.blockTokens(list.items[i].text, []);
+            const spacers = list.items[i].tokens.filter(t => t.type === 'space');
+            const hasMultipleLineBreaks = spacers.every(t => {
+              const chars = t.raw.split('');
+              let lineBreaks = 0;
+              for (const char of chars) {
+                if (char === '\n') {
+                  lineBreaks += 1;
+                }
+                if (lineBreaks > 1) {
+                  return true;
+                }
+              }
+
+              return false;
+            });
+
+            if (!list.loose && spacers.length && hasMultipleLineBreaks) {
+              // Having a single line break doesn't mean a list is loose. A single line break is terminating the last list item
+              list.loose = true;
+              list.items[i].loose = true;
+            }
+          }
+
+          return list;
+        }
+      }
+
+      html(src) {
+        const cap = this.rules.block.html.exec(src);
+        if (cap) {
+          const token = {
+            type: 'html',
+            raw: cap[0],
+            pre: !this.options.sanitizer
+              && (cap[1] === 'pre' || cap[1] === 'script' || cap[1] === 'style'),
+            text: cap[0]
+          };
+          if (this.options.sanitize) {
+            token.type = 'paragraph';
+            token.text = this.options.sanitizer ? this.options.sanitizer(cap[0]) : escape(cap[0]);
+            token.tokens = [];
+            this.lexer.inline(token.text, token.tokens);
+          }
+          return token;
+        }
+      }
+
+      def(src) {
+        const cap = this.rules.block.def.exec(src);
+        if (cap) {
+          if (cap[3]) cap[3] = cap[3].substring(1, cap[3].length - 1);
+          const tag = cap[1].toLowerCase().replace(/\s+/g, ' ');
+          return {
+            type: 'def',
+            tag,
+            raw: cap[0],
+            href: cap[2],
+            title: cap[3]
+          };
+        }
+      }
+
+      table(src) {
+        const cap = this.rules.block.table.exec(src);
+        if (cap) {
+          const item = {
+            type: 'table',
+            header: splitCells(cap[1]).map(c => { return { text: c }; }),
+            align: cap[2].replace(/^ *|\| *$/g, '').split(/ *\| */),
+            rows: cap[3] ? cap[3].replace(/\n[ \t]*$/, '').split('\n') : []
+          };
+
+          if (item.header.length === item.align.length) {
+            item.raw = cap[0];
+
+            let l = item.align.length;
+            let i, j, k, row;
+            for (i = 0; i < l; i++) {
+              if (/^ *-+: *$/.test(item.align[i])) {
+                item.align[i] = 'right';
+              } else if (/^ *:-+: *$/.test(item.align[i])) {
+                item.align[i] = 'center';
+              } else if (/^ *:-+ *$/.test(item.align[i])) {
+                item.align[i] = 'left';
+              } else {
+                item.align[i] = null;
+              }
+            }
+
+            l = item.rows.length;
+            for (i = 0; i < l; i++) {
+              item.rows[i] = splitCells(item.rows[i], item.header.length).map(c => { return { text: c }; });
+            }
+
+            // parse child tokens inside headers and cells
+
+            // header child tokens
+            l = item.header.length;
+            for (j = 0; j < l; j++) {
+              item.header[j].tokens = [];
+              this.lexer.inlineTokens(item.header[j].text, item.header[j].tokens);
+            }
+
+            // cell child tokens
+            l = item.rows.length;
+            for (j = 0; j < l; j++) {
+              row = item.rows[j];
+              for (k = 0; k < row.length; k++) {
+                row[k].tokens = [];
+                this.lexer.inlineTokens(row[k].text, row[k].tokens);
+              }
+            }
+
+            return item;
+          }
+        }
+      }
+
+      lheading(src) {
+        const cap = this.rules.block.lheading.exec(src);
+        if (cap) {
+          const token = {
+            type: 'heading',
+            raw: cap[0],
+            depth: cap[2].charAt(0) === '=' ? 1 : 2,
+            text: cap[1],
+            tokens: []
+          };
+          this.lexer.inline(token.text, token.tokens);
+          return token;
+        }
+      }
+
+      paragraph(src) {
+        const cap = this.rules.block.paragraph.exec(src);
+        if (cap) {
+          const token = {
+            type: 'paragraph',
+            raw: cap[0],
+            text: cap[1].charAt(cap[1].length - 1) === '\n'
+              ? cap[1].slice(0, -1)
+              : cap[1],
+            tokens: []
+          };
+          this.lexer.inline(token.text, token.tokens);
+          return token;
+        }
+      }
+
+      text(src) {
+        const cap = this.rules.block.text.exec(src);
+        if (cap) {
+          const token = {
+            type: 'text',
+            raw: cap[0],
+            text: cap[0],
+            tokens: []
+          };
+          this.lexer.inline(token.text, token.tokens);
+          return token;
+        }
+      }
+
+      escape(src) {
+        const cap = this.rules.inline.escape.exec(src);
+        if (cap) {
+          return {
+            type: 'escape',
+            raw: cap[0],
+            text: escape(cap[1])
+          };
+        }
+      }
+
+      tag(src) {
+        const cap = this.rules.inline.tag.exec(src);
+        if (cap) {
+          if (!this.lexer.state.inLink && /^<a /i.test(cap[0])) {
+            this.lexer.state.inLink = true;
+          } else if (this.lexer.state.inLink && /^<\/a>/i.test(cap[0])) {
+            this.lexer.state.inLink = false;
+          }
+          if (!this.lexer.state.inRawBlock && /^<(pre|code|kbd|script)(\s|>)/i.test(cap[0])) {
+            this.lexer.state.inRawBlock = true;
+          } else if (this.lexer.state.inRawBlock && /^<\/(pre|code|kbd|script)(\s|>)/i.test(cap[0])) {
+            this.lexer.state.inRawBlock = false;
+          }
+
+          return {
+            type: this.options.sanitize
+              ? 'text'
+              : 'html',
+            raw: cap[0],
+            inLink: this.lexer.state.inLink,
+            inRawBlock: this.lexer.state.inRawBlock,
+            text: this.options.sanitize
+              ? (this.options.sanitizer
+                ? this.options.sanitizer(cap[0])
+                : escape(cap[0]))
+              : cap[0]
+          };
+        }
+      }
+
+      link(src) {
+        const cap = this.rules.inline.link.exec(src);
+        if (cap) {
+          const trimmedUrl = cap[2].trim();
+          if (!this.options.pedantic && /^</.test(trimmedUrl)) {
+            // commonmark requires matching angle brackets
+            if (!(/>$/.test(trimmedUrl))) {
+              return;
+            }
+
+            // ending angle bracket cannot be escaped
+            const rtrimSlash = rtrim(trimmedUrl.slice(0, -1), '\\');
+            if ((trimmedUrl.length - rtrimSlash.length) % 2 === 0) {
+              return;
+            }
+          } else {
+            // find closing parenthesis
+            const lastParenIndex = findClosingBracket(cap[2], '()');
+            if (lastParenIndex > -1) {
+              const start = cap[0].indexOf('!') === 0 ? 5 : 4;
+              const linkLen = start + cap[1].length + lastParenIndex;
+              cap[2] = cap[2].substring(0, lastParenIndex);
+              cap[0] = cap[0].substring(0, linkLen).trim();
+              cap[3] = '';
+            }
+          }
+          let href = cap[2];
+          let title = '';
+          if (this.options.pedantic) {
+            // split pedantic href and title
+            const link = /^([^'"]*[^\s])\s+(['"])(.*)\2/.exec(href);
+
+            if (link) {
+              href = link[1];
+              title = link[3];
+            }
+          } else {
+            title = cap[3] ? cap[3].slice(1, -1) : '';
+          }
+
+          href = href.trim();
+          if (/^</.test(href)) {
+            if (this.options.pedantic && !(/>$/.test(trimmedUrl))) {
+              // pedantic allows starting angle bracket without ending angle bracket
+              href = href.slice(1);
+            } else {
+              href = href.slice(1, -1);
+            }
+          }
+          return outputLink(cap, {
+            href: href ? href.replace(this.rules.inline._escapes, '$1') : href,
+            title: title ? title.replace(this.rules.inline._escapes, '$1') : title
+          }, cap[0], this.lexer);
+        }
+      }
+
+      reflink(src, links) {
+        let cap;
+        if ((cap = this.rules.inline.reflink.exec(src))
+            || (cap = this.rules.inline.nolink.exec(src))) {
+          let link = (cap[2] || cap[1]).replace(/\s+/g, ' ');
+          link = links[link.toLowerCase()];
+          if (!link || !link.href) {
+            const text = cap[0].charAt(0);
+            return {
+              type: 'text',
+              raw: text,
+              text
+            };
+          }
+          return outputLink(cap, link, cap[0], this.lexer);
+        }
+      }
+
+      emStrong(src, maskedSrc, prevChar = '') {
+        let match = this.rules.inline.emStrong.lDelim.exec(src);
+        if (!match) return;
+
+        // _ can't be between two alphanumerics. \p{L}\p{N} includes non-english alphabet/numbers as well
+        if (match[3] && prevChar.match(/[\p{L}\p{N}]/u)) return;
+
+        const nextChar = match[1] || match[2] || '';
+
+        if (!nextChar || (nextChar && (prevChar === '' || this.rules.inline.punctuation.exec(prevChar)))) {
+          const lLength = match[0].length - 1;
+          let rDelim, rLength, delimTotal = lLength, midDelimTotal = 0;
+
+          const endReg = match[0][0] === '*' ? this.rules.inline.emStrong.rDelimAst : this.rules.inline.emStrong.rDelimUnd;
+          endReg.lastIndex = 0;
+
+          // Clip maskedSrc to same section of string as src (move to lexer?)
+          maskedSrc = maskedSrc.slice(-1 * src.length + lLength);
+
+          while ((match = endReg.exec(maskedSrc)) != null) {
+            rDelim = match[1] || match[2] || match[3] || match[4] || match[5] || match[6];
+
+            if (!rDelim) continue; // skip single * in __abc*abc__
+
+            rLength = rDelim.length;
+
+            if (match[3] || match[4]) { // found another Left Delim
+              delimTotal += rLength;
+              continue;
+            } else if (match[5] || match[6]) { // either Left or Right Delim
+              if (lLength % 3 && !((lLength + rLength) % 3)) {
+                midDelimTotal += rLength;
+                continue; // CommonMark Emphasis Rules 9-10
+              }
+            }
+
+            delimTotal -= rLength;
+
+            if (delimTotal > 0) continue; // Haven't found enough closing delimiters
+
+            // Remove extra characters. *a*** -> *a*
+            rLength = Math.min(rLength, rLength + delimTotal + midDelimTotal);
+
+            // Create `em` if smallest delimiter has odd char count. *a***
+            if (Math.min(lLength, rLength) % 2) {
+              const text = src.slice(1, lLength + match.index + rLength);
+              return {
+                type: 'em',
+                raw: src.slice(0, lLength + match.index + rLength + 1),
+                text,
+                tokens: this.lexer.inlineTokens(text, [])
+              };
+            }
+
+            // Create 'strong' if smallest delimiter has even char count. **a***
+            const text = src.slice(2, lLength + match.index + rLength - 1);
+            return {
+              type: 'strong',
+              raw: src.slice(0, lLength + match.index + rLength + 1),
+              text,
+              tokens: this.lexer.inlineTokens(text, [])
+            };
+          }
+        }
+      }
+
+      codespan(src) {
+        const cap = this.rules.inline.code.exec(src);
+        if (cap) {
+          let text = cap[2].replace(/\n/g, ' ');
+          const hasNonSpaceChars = /[^ ]/.test(text);
+          const hasSpaceCharsOnBothEnds = /^ /.test(text) && / $/.test(text);
+          if (hasNonSpaceChars && hasSpaceCharsOnBothEnds) {
+            text = text.substring(1, text.length - 1);
+          }
+          text = escape(text, true);
+          return {
+            type: 'codespan',
+            raw: cap[0],
+            text
+          };
+        }
+      }
+
+      br(src) {
+        const cap = this.rules.inline.br.exec(src);
+        if (cap) {
+          return {
+            type: 'br',
+            raw: cap[0]
+          };
+        }
+      }
+
+      del(src) {
+        const cap = this.rules.inline.del.exec(src);
+        if (cap) {
+          return {
+            type: 'del',
+            raw: cap[0],
+            text: cap[2],
+            tokens: this.lexer.inlineTokens(cap[2], [])
+          };
+        }
+      }
+
+      autolink(src, mangle) {
+        const cap = this.rules.inline.autolink.exec(src);
+        if (cap) {
+          let text, href;
+          if (cap[2] === '@') {
+            text = escape(this.options.mangle ? mangle(cap[1]) : cap[1]);
+            href = 'mailto:' + text;
+          } else {
+            text = escape(cap[1]);
+            href = text;
+          }
+
+          return {
+            type: 'link',
+            raw: cap[0],
+            text,
+            href,
+            tokens: [
+              {
+                type: 'text',
+                raw: text,
+                text
+              }
+            ]
+          };
+        }
+      }
+
+      url(src, mangle) {
+        let cap;
+        if (cap = this.rules.inline.url.exec(src)) {
+          let text, href;
+          if (cap[2] === '@') {
+            text = escape(this.options.mangle ? mangle(cap[0]) : cap[0]);
+            href = 'mailto:' + text;
+          } else {
+            // do extended autolink path validation
+            let prevCapZero;
+            do {
+              prevCapZero = cap[0];
+              cap[0] = this.rules.inline._backpedal.exec(cap[0])[0];
+            } while (prevCapZero !== cap[0]);
+            text = escape(cap[0]);
+            if (cap[1] === 'www.') {
+              href = 'http://' + text;
+            } else {
+              href = text;
+            }
+          }
+          return {
+            type: 'link',
+            raw: cap[0],
+            text,
+            href,
+            tokens: [
+              {
+                type: 'text',
+                raw: text,
+                text
+              }
+            ]
+          };
+        }
+      }
+
+      inlineText(src, smartypants) {
+        const cap = this.rules.inline.text.exec(src);
+        if (cap) {
+          let text;
+          if (this.lexer.state.inRawBlock) {
+            text = this.options.sanitize ? (this.options.sanitizer ? this.options.sanitizer(cap[0]) : escape(cap[0])) : cap[0];
+          } else {
+            text = escape(this.options.smartypants ? smartypants(cap[0]) : cap[0]);
+          }
+          return {
+            type: 'text',
+            raw: cap[0],
+            text
+          };
+        }
+      }
+    }
+
+    /**
+     * Block-Level Grammar
+     */
+    const block = {
+      newline: /^(?: *(?:\n|$))+/,
+      code: /^( {4}[^\n]+(?:\n(?: *(?:\n|$))*)?)+/,
+      fences: /^ {0,3}(`{3,}(?=[^`\n]*\n)|~{3,})([^\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?=\n|$)|$)/,
+      hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
+      heading: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
+      blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
+      list: /^( {0,3}bull)( [^\n]+?)?(?:\n|$)/,
+      html: '^ {0,3}(?:' // optional indentation
+        + '<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
+        + '|comment[^\\n]*(\\n+|$)' // (2)
+        + '|<\\?[\\s\\S]*?(?:\\?>\\n*|$)' // (3)
+        + '|<![A-Z][\\s\\S]*?(?:>\\n*|$)' // (4)
+        + '|<!\\[CDATA\\[[\\s\\S]*?(?:\\]\\]>\\n*|$)' // (5)
+        + '|</?(tag)(?: +|\\n|/?>)[\\s\\S]*?(?:(?:\\n *)+\\n|$)' // (6)
+        + '|<(?!script|pre|style|textarea)([a-z][\\w-]*)(?:attribute)*? */?>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n *)+\\n|$)' // (7) open tag
+        + '|</(?!script|pre|style|textarea)[a-z][\\w-]*\\s*>(?=[ \\t]*(?:\\n|$))[\\s\\S]*?(?:(?:\\n *)+\\n|$)' // (7) closing tag
+        + ')',
+      def: /^ {0,3}\[(label)\]: *\n? *<?([^\s>]+)>?(?:(?: +\n? *| *\n *)(title))? *(?:\n+|$)/,
+      table: noopTest,
+      lheading: /^([^\n]+)\n {0,3}(=+|-+) *(?:\n+|$)/,
+      // regex template, placeholders will be replaced according to different paragraph
+      // interruption rules of commonmark and the original markdown spec:
+      _paragraph: /^([^\n]+(?:\n(?!hr|heading|lheading|blockquote|fences|list|html|table| +\n)[^\n]+)*)/,
+      text: /^[^\n]+/
+    };
+
+    block._label = /(?!\s*\])(?:\\[\[\]]|[^\[\]])+/;
+    block._title = /(?:"(?:\\"?|[^"\\])*"|'[^'\n]*(?:\n[^'\n]+)*\n?'|\([^()]*\))/;
+    block.def = edit(block.def)
+      .replace('label', block._label)
+      .replace('title', block._title)
+      .getRegex();
+
+    block.bullet = /(?:[*+-]|\d{1,9}[.)])/;
+    block.listItemStart = edit(/^( *)(bull) */)
+      .replace('bull', block.bullet)
+      .getRegex();
+
+    block.list = edit(block.list)
+      .replace(/bull/g, block.bullet)
+      .replace('hr', '\\n+(?=\\1?(?:(?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$))')
+      .replace('def', '\\n+(?=' + block.def.source + ')')
+      .getRegex();
+
+    block._tag = 'address|article|aside|base|basefont|blockquote|body|caption'
+      + '|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption'
+      + '|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe'
+      + '|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option'
+      + '|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr'
+      + '|track|ul';
+    block._comment = /<!--(?!-?>)[\s\S]*?(?:-->|$)/;
+    block.html = edit(block.html, 'i')
+      .replace('comment', block._comment)
+      .replace('tag', block._tag)
+      .replace('attribute', / +[a-zA-Z:_][\w.:-]*(?: *= *"[^"\n]*"| *= *'[^'\n]*'| *= *[^\s"'=<>`]+)?/)
+      .getRegex();
+
+    block.paragraph = edit(block._paragraph)
+      .replace('hr', block.hr)
+      .replace('heading', ' {0,3}#{1,6} ')
+      .replace('|lheading', '') // setex headings don't interrupt commonmark paragraphs
+      .replace('|table', '')
+      .replace('blockquote', ' {0,3}>')
+      .replace('fences', ' {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n')
+      .replace('list', ' {0,3}(?:[*+-]|1[.)]) ') // only lists starting from 1 can interrupt
+      .replace('html', '</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)')
+      .replace('tag', block._tag) // pars can be interrupted by type (6) html blocks
+      .getRegex();
+
+    block.blockquote = edit(block.blockquote)
+      .replace('paragraph', block.paragraph)
+      .getRegex();
+
+    /**
+     * Normal Block Grammar
+     */
+
+    block.normal = merge({}, block);
+
+    /**
+     * GFM Block Grammar
+     */
+
+    block.gfm = merge({}, block.normal, {
+      table: '^ *([^\\n ].*\\|.*)\\n' // Header
+        + ' {0,3}(?:\\| *)?(:?-+:? *(?:\\| *:?-+:? *)*)(?:\\| *)?' // Align
+        + '(?:\\n((?:(?! *\\n|hr|heading|blockquote|code|fences|list|html).*(?:\\n|$))*)\\n*|$)' // Cells
+    });
+
+    block.gfm.table = edit(block.gfm.table)
+      .replace('hr', block.hr)
+      .replace('heading', ' {0,3}#{1,6} ')
+      .replace('blockquote', ' {0,3}>')
+      .replace('code', ' {4}[^\\n]')
+      .replace('fences', ' {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n')
+      .replace('list', ' {0,3}(?:[*+-]|1[.)]) ') // only lists starting from 1 can interrupt
+      .replace('html', '</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)')
+      .replace('tag', block._tag) // tables can be interrupted by type (6) html blocks
+      .getRegex();
+
+    block.gfm.paragraph = edit(block._paragraph)
+      .replace('hr', block.hr)
+      .replace('heading', ' {0,3}#{1,6} ')
+      .replace('|lheading', '') // setex headings don't interrupt commonmark paragraphs
+      .replace('table', block.gfm.table) // interrupt paragraphs with table
+      .replace('blockquote', ' {0,3}>')
+      .replace('fences', ' {0,3}(?:`{3,}(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n')
+      .replace('list', ' {0,3}(?:[*+-]|1[.)]) ') // only lists starting from 1 can interrupt
+      .replace('html', '</?(?:tag)(?: +|\\n|/?>)|<(?:script|pre|style|textarea|!--)')
+      .replace('tag', block._tag) // pars can be interrupted by type (6) html blocks
+      .getRegex();
+    /**
+     * Pedantic grammar (original John Gruber's loose markdown specification)
+     */
+
+    block.pedantic = merge({}, block.normal, {
+      html: edit(
+        '^ *(?:comment *(?:\\n|\\s*$)'
+        + '|<(tag)[\\s\\S]+?</\\1> *(?:\\n{2,}|\\s*$)' // closed tag
+        + '|<tag(?:"[^"]*"|\'[^\']*\'|\\s[^\'"/>\\s]*)*?/?> *(?:\\n{2,}|\\s*$))')
+        .replace('comment', block._comment)
+        .replace(/tag/g, '(?!(?:'
+          + 'a|em|strong|small|s|cite|q|dfn|abbr|data|time|code|var|samp|kbd|sub'
+          + '|sup|i|b|u|mark|ruby|rt|rp|bdi|bdo|span|br|wbr|ins|del|img)'
+          + '\\b)\\w+(?!:|[^\\w\\s@]*@)\\b')
+        .getRegex(),
+      def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +(["(][^\n]+[")]))? *(?:\n+|$)/,
+      heading: /^(#{1,6})(.*)(?:\n+|$)/,
+      fences: noopTest, // fences not supported
+      paragraph: edit(block.normal._paragraph)
+        .replace('hr', block.hr)
+        .replace('heading', ' *#{1,6} *[^\n]')
+        .replace('lheading', block.lheading)
+        .replace('blockquote', ' {0,3}>')
+        .replace('|fences', '')
+        .replace('|list', '')
+        .replace('|html', '')
+        .getRegex()
+    });
+
+    /**
+     * Inline-Level Grammar
+     */
+    const inline = {
+      escape: /^\\([!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])/,
+      autolink: /^<(scheme:[^\s\x00-\x1f<>]*|email)>/,
+      url: noopTest,
+      tag: '^comment'
+        + '|^</[a-zA-Z][\\w:-]*\\s*>' // self-closing tag
+        + '|^<[a-zA-Z][\\w-]*(?:attribute)*?\\s*/?>' // open tag
+        + '|^<\\?[\\s\\S]*?\\?>' // processing instruction, e.g. <?php ?>
+        + '|^<![a-zA-Z]+\\s[\\s\\S]*?>' // declaration, e.g. <!DOCTYPE html>
+        + '|^<!\\[CDATA\\[[\\s\\S]*?\\]\\]>', // CDATA section
+      link: /^!?\[(label)\]\(\s*(href)(?:\s+(title))?\s*\)/,
+      reflink: /^!?\[(label)\]\[(?!\s*\])((?:\\[\[\]]?|[^\[\]\\])+)\]/,
+      nolink: /^!?\[(?!\s*\])((?:\[[^\[\]]*\]|\\[\[\]]|[^\[\]])*)\](?:\[\])?/,
+      reflinkSearch: 'reflink|nolink(?!\\()',
+      emStrong: {
+        lDelim: /^(?:\*+(?:([punct_])|[^\s*]))|^_+(?:([punct*])|([^\s_]))/,
+        //        (1) and (2) can only be a Right Delimiter. (3) and (4) can only be Left.  (5) and (6) can be either Left or Right.
+        //        () Skip orphan delim inside strong    (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
+        rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
+        rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
+      },
+      code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
+      br: /^( {2,}|\\)\n(?!\s*$)/,
+      del: noopTest,
+      text: /^(`+|[^`])(?:(?= {2,}\n)|[\s\S]*?(?:(?=[\\<!\[`*_]|\b_|$)|[^ ](?= {2,}\n)))/,
+      punctuation: /^([\spunctuation])/
+    };
+
+    // list of punctuation marks from CommonMark spec
+    // without * and _ to handle the different emphasis markers * and _
+    inline._punctuation = '!"#$%&\'()+\\-.,/:;<=>?@\\[\\]`^{|}~';
+    inline.punctuation = edit(inline.punctuation).replace(/punctuation/g, inline._punctuation).getRegex();
+
+    // sequences em should skip over [title](link), `code`, <html>
+    inline.blockSkip = /\[[^\]]*?\]\([^\)]*?\)|`[^`]*?`|<[^>]*?>/g;
+    inline.escapedEmSt = /\\\*|\\_/g;
+
+    inline._comment = edit(block._comment).replace('(?:-->|$)', '-->').getRegex();
+
+    inline.emStrong.lDelim = edit(inline.emStrong.lDelim)
+      .replace(/punct/g, inline._punctuation)
+      .getRegex();
+
+    inline.emStrong.rDelimAst = edit(inline.emStrong.rDelimAst, 'g')
+      .replace(/punct/g, inline._punctuation)
+      .getRegex();
+
+    inline.emStrong.rDelimUnd = edit(inline.emStrong.rDelimUnd, 'g')
+      .replace(/punct/g, inline._punctuation)
+      .getRegex();
+
+    inline._escapes = /\\([!"#$%&'()*+,\-./:;<=>?@\[\]\\^_`{|}~])/g;
+
+    inline._scheme = /[a-zA-Z][a-zA-Z0-9+.-]{1,31}/;
+    inline._email = /[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+(@)[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+(?![-_])/;
+    inline.autolink = edit(inline.autolink)
+      .replace('scheme', inline._scheme)
+      .replace('email', inline._email)
+      .getRegex();
+
+    inline._attribute = /\s+[a-zA-Z:_][\w.:-]*(?:\s*=\s*"[^"]*"|\s*=\s*'[^']*'|\s*=\s*[^\s"'=<>`]+)?/;
+
+    inline.tag = edit(inline.tag)
+      .replace('comment', inline._comment)
+      .replace('attribute', inline._attribute)
+      .getRegex();
+
+    inline._label = /(?:\[(?:\\.|[^\[\]\\])*\]|\\.|`[^`]*`|[^\[\]\\`])*?/;
+    inline._href = /<(?:\\.|[^\n<>\\])+>|[^\s\x00-\x1f]*/;
+    inline._title = /"(?:\\"?|[^"\\])*"|'(?:\\'?|[^'\\])*'|\((?:\\\)?|[^)\\])*\)/;
+
+    inline.link = edit(inline.link)
+      .replace('label', inline._label)
+      .replace('href', inline._href)
+      .replace('title', inline._title)
+      .getRegex();
+
+    inline.reflink = edit(inline.reflink)
+      .replace('label', inline._label)
+      .getRegex();
+
+    inline.reflinkSearch = edit(inline.reflinkSearch, 'g')
+      .replace('reflink', inline.reflink)
+      .replace('nolink', inline.nolink)
+      .getRegex();
+
+    /**
+     * Normal Inline Grammar
+     */
+
+    inline.normal = merge({}, inline);
+
+    /**
+     * Pedantic Inline Grammar
+     */
+
+    inline.pedantic = merge({}, inline.normal, {
+      strong: {
+        start: /^__|\*\*/,
+        middle: /^__(?=\S)([\s\S]*?\S)__(?!_)|^\*\*(?=\S)([\s\S]*?\S)\*\*(?!\*)/,
+        endAst: /\*\*(?!\*)/g,
+        endUnd: /__(?!_)/g
+      },
+      em: {
+        start: /^_|\*/,
+        middle: /^()\*(?=\S)([\s\S]*?\S)\*(?!\*)|^_(?=\S)([\s\S]*?\S)_(?!_)/,
+        endAst: /\*(?!\*)/g,
+        endUnd: /_(?!_)/g
+      },
+      link: edit(/^!?\[(label)\]\((.*?)\)/)
+        .replace('label', inline._label)
+        .getRegex(),
+      reflink: edit(/^!?\[(label)\]\s*\[([^\]]*)\]/)
+        .replace('label', inline._label)
+        .getRegex()
+    });
+
+    /**
+     * GFM Inline Grammar
+     */
+
+    inline.gfm = merge({}, inline.normal, {
+      escape: edit(inline.escape).replace('])', '~|])').getRegex(),
+      _extended_email: /[A-Za-z0-9._+-]+(@)[a-zA-Z0-9-_]+(?:\.[a-zA-Z0-9-_]*[a-zA-Z0-9])+(?![-_])/,
+      url: /^((?:ftp|https?):\/\/|www\.)(?:[a-zA-Z0-9\-]+\.?)+[^\s<]*|^email/,
+      _backpedal: /(?:[^?!.,:;*_~()&]+|\([^)]*\)|&(?![a-zA-Z0-9]+;$)|[?!.,:;*_~)]+(?!$))+/,
+      del: /^(~~?)(?=[^\s~])([\s\S]*?[^\s~])\1(?=[^~]|$)/,
+      text: /^([`~]+|[^`~])(?:(?= {2,}\n)|(?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)|[\s\S]*?(?:(?=[\\<!\[`*~_]|\b_|https?:\/\/|ftp:\/\/|www\.|$)|[^ ](?= {2,}\n)|[^a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-](?=[a-zA-Z0-9.!#$%&'*+\/=?_`{\|}~-]+@)))/
+    });
+
+    inline.gfm.url = edit(inline.gfm.url, 'i')
+      .replace('email', inline.gfm._extended_email)
+      .getRegex();
+    /**
+     * GFM + Line Breaks Inline Grammar
+     */
+
+    inline.breaks = merge({}, inline.gfm, {
+      br: edit(inline.br).replace('{2,}', '*').getRegex(),
+      text: edit(inline.gfm.text)
+        .replace('\\b_', '\\b_| {2,}\\n')
+        .replace(/\{2,\}/g, '*')
+        .getRegex()
+    });
+
+    /**
+     * smartypants text replacement
+     */
+    function smartypants(text) {
+      return text
+        // em-dashes
+        .replace(/---/g, '\u2014')
+        // en-dashes
+        .replace(/--/g, '\u2013')
+        // opening singles
+        .replace(/(^|[-\u2014/(\[{"\s])'/g, '$1\u2018')
+        // closing singles & apostrophes
+        .replace(/'/g, '\u2019')
+        // opening doubles
+        .replace(/(^|[-\u2014/(\[{\u2018\s])"/g, '$1\u201c')
+        // closing doubles
+        .replace(/"/g, '\u201d')
+        // ellipses
+        .replace(/\.{3}/g, '\u2026');
+    }
+
+    /**
+     * mangle email addresses
+     */
+    function mangle(text) {
+      let out = '',
+        i,
+        ch;
+
+      const l = text.length;
+      for (i = 0; i < l; i++) {
+        ch = text.charCodeAt(i);
+        if (Math.random() > 0.5) {
+          ch = 'x' + ch.toString(16);
+        }
+        out += '&#' + ch + ';';
+      }
+
+      return out;
+    }
+
+    /**
+     * Block Lexer
+     */
+    class Lexer {
+      constructor(options) {
+        this.tokens = [];
+        this.tokens.links = Object.create(null);
+        this.options = options || defaults;
+        this.options.tokenizer = this.options.tokenizer || new Tokenizer();
+        this.tokenizer = this.options.tokenizer;
+        this.tokenizer.options = this.options;
+        this.tokenizer.lexer = this;
+        this.inlineQueue = [];
+        this.state = {
+          inLink: false,
+          inRawBlock: false,
+          top: true
+        };
+
+        const rules = {
+          block: block.normal,
+          inline: inline.normal
+        };
+
+        if (this.options.pedantic) {
+          rules.block = block.pedantic;
+          rules.inline = inline.pedantic;
+        } else if (this.options.gfm) {
+          rules.block = block.gfm;
+          if (this.options.breaks) {
+            rules.inline = inline.breaks;
+          } else {
+            rules.inline = inline.gfm;
+          }
+        }
+        this.tokenizer.rules = rules;
+      }
+
+      /**
+       * Expose Rules
+       */
+      static get rules() {
+        return {
+          block,
+          inline
+        };
+      }
+
+      /**
+       * Static Lex Method
+       */
+      static lex(src, options) {
+        const lexer = new Lexer(options);
+        return lexer.lex(src);
+      }
+
+      /**
+       * Static Lex Inline Method
+       */
+      static lexInline(src, options) {
+        const lexer = new Lexer(options);
+        return lexer.inlineTokens(src);
+      }
+
+      /**
+       * Preprocessing
+       */
+      lex(src) {
+        src = src
+          .replace(/\r\n|\r/g, '\n')
+          .replace(/\t/g, '    ');
+
+        this.blockTokens(src, this.tokens);
+
+        let next;
+        while (next = this.inlineQueue.shift()) {
+          this.inlineTokens(next.src, next.tokens);
+        }
+
+        return this.tokens;
+      }
+
+      /**
+       * Lexing
+       */
+      blockTokens(src, tokens = []) {
+        if (this.options.pedantic) {
+          src = src.replace(/^ +$/gm, '');
+        }
+        let token, lastToken, cutSrc, lastParagraphClipped;
+
+        while (src) {
+          if (this.options.extensions
+            && this.options.extensions.block
+            && this.options.extensions.block.some((extTokenizer) => {
+              if (token = extTokenizer.call({ lexer: this }, src, tokens)) {
+                src = src.substring(token.raw.length);
+                tokens.push(token);
+                return true;
+              }
+              return false;
+            })) {
+            continue;
+          }
+
+          // newline
+          if (token = this.tokenizer.space(src)) {
+            src = src.substring(token.raw.length);
+            if (token.raw.length === 1 && tokens.length > 0) {
+              // if there's a single \n as a spacer, it's terminating the last line,
+              // so move it there so that we don't get unecessary paragraph tags
+              tokens[tokens.length - 1].raw += '\n';
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          // code
+          if (token = this.tokenizer.code(src)) {
+            src = src.substring(token.raw.length);
+            lastToken = tokens[tokens.length - 1];
+            // An indented code block cannot interrupt a paragraph.
+            if (lastToken && (lastToken.type === 'paragraph' || lastToken.type === 'text')) {
+              lastToken.raw += '\n' + token.raw;
+              lastToken.text += '\n' + token.text;
+              this.inlineQueue[this.inlineQueue.length - 1].src = lastToken.text;
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          // fences
+          if (token = this.tokenizer.fences(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // heading
+          if (token = this.tokenizer.heading(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // hr
+          if (token = this.tokenizer.hr(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // blockquote
+          if (token = this.tokenizer.blockquote(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // list
+          if (token = this.tokenizer.list(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // html
+          if (token = this.tokenizer.html(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // def
+          if (token = this.tokenizer.def(src)) {
+            src = src.substring(token.raw.length);
+            lastToken = tokens[tokens.length - 1];
+            if (lastToken && (lastToken.type === 'paragraph' || lastToken.type === 'text')) {
+              lastToken.raw += '\n' + token.raw;
+              lastToken.text += '\n' + token.raw;
+              this.inlineQueue[this.inlineQueue.length - 1].src = lastToken.text;
+            } else if (!this.tokens.links[token.tag]) {
+              this.tokens.links[token.tag] = {
+                href: token.href,
+                title: token.title
+              };
+            }
+            continue;
+          }
+
+          // table (gfm)
+          if (token = this.tokenizer.table(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // lheading
+          if (token = this.tokenizer.lheading(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // top-level paragraph
+          // prevent paragraph consuming extensions by clipping 'src' to extension start
+          cutSrc = src;
+          if (this.options.extensions && this.options.extensions.startBlock) {
+            let startIndex = Infinity;
+            const tempSrc = src.slice(1);
+            let tempStart;
+            this.options.extensions.startBlock.forEach(function(getStartIndex) {
+              tempStart = getStartIndex.call({ lexer: this }, tempSrc);
+              if (typeof tempStart === 'number' && tempStart >= 0) { startIndex = Math.min(startIndex, tempStart); }
+            });
+            if (startIndex < Infinity && startIndex >= 0) {
+              cutSrc = src.substring(0, startIndex + 1);
+            }
+          }
+          if (this.state.top && (token = this.tokenizer.paragraph(cutSrc))) {
+            lastToken = tokens[tokens.length - 1];
+            if (lastParagraphClipped && lastToken.type === 'paragraph') {
+              lastToken.raw += '\n' + token.raw;
+              lastToken.text += '\n' + token.text;
+              this.inlineQueue.pop();
+              this.inlineQueue[this.inlineQueue.length - 1].src = lastToken.text;
+            } else {
+              tokens.push(token);
+            }
+            lastParagraphClipped = (cutSrc.length !== src.length);
+            src = src.substring(token.raw.length);
+            continue;
+          }
+
+          // text
+          if (token = this.tokenizer.text(src)) {
+            src = src.substring(token.raw.length);
+            lastToken = tokens[tokens.length - 1];
+            if (lastToken && lastToken.type === 'text') {
+              lastToken.raw += '\n' + token.raw;
+              lastToken.text += '\n' + token.text;
+              this.inlineQueue.pop();
+              this.inlineQueue[this.inlineQueue.length - 1].src = lastToken.text;
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          if (src) {
+            const errMsg = 'Infinite loop on byte: ' + src.charCodeAt(0);
+            if (this.options.silent) {
+              console.error(errMsg);
+              break;
+            } else {
+              throw new Error(errMsg);
+            }
+          }
+        }
+
+        this.state.top = true;
+        return tokens;
+      }
+
+      inline(src, tokens) {
+        this.inlineQueue.push({ src, tokens });
+      }
+
+      /**
+       * Lexing/Compiling
+       */
+      inlineTokens(src, tokens = []) {
+        let token, lastToken, cutSrc;
+
+        // String with links masked to avoid interference with em and strong
+        let maskedSrc = src;
+        let match;
+        let keepPrevChar, prevChar;
+
+        // Mask out reflinks
+        if (this.tokens.links) {
+          const links = Object.keys(this.tokens.links);
+          if (links.length > 0) {
+            while ((match = this.tokenizer.rules.inline.reflinkSearch.exec(maskedSrc)) != null) {
+              if (links.includes(match[0].slice(match[0].lastIndexOf('[') + 1, -1))) {
+                maskedSrc = maskedSrc.slice(0, match.index) + '[' + repeatString('a', match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.reflinkSearch.lastIndex);
+              }
+            }
+          }
+        }
+        // Mask out other blocks
+        while ((match = this.tokenizer.rules.inline.blockSkip.exec(maskedSrc)) != null) {
+          maskedSrc = maskedSrc.slice(0, match.index) + '[' + repeatString('a', match[0].length - 2) + ']' + maskedSrc.slice(this.tokenizer.rules.inline.blockSkip.lastIndex);
+        }
+
+        // Mask out escaped em & strong delimiters
+        while ((match = this.tokenizer.rules.inline.escapedEmSt.exec(maskedSrc)) != null) {
+          maskedSrc = maskedSrc.slice(0, match.index) + '++' + maskedSrc.slice(this.tokenizer.rules.inline.escapedEmSt.lastIndex);
+        }
+
+        while (src) {
+          if (!keepPrevChar) {
+            prevChar = '';
+          }
+          keepPrevChar = false;
+
+          // extensions
+          if (this.options.extensions
+            && this.options.extensions.inline
+            && this.options.extensions.inline.some((extTokenizer) => {
+              if (token = extTokenizer.call({ lexer: this }, src, tokens)) {
+                src = src.substring(token.raw.length);
+                tokens.push(token);
+                return true;
+              }
+              return false;
+            })) {
+            continue;
+          }
+
+          // escape
+          if (token = this.tokenizer.escape(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // tag
+          if (token = this.tokenizer.tag(src)) {
+            src = src.substring(token.raw.length);
+            lastToken = tokens[tokens.length - 1];
+            if (lastToken && token.type === 'text' && lastToken.type === 'text') {
+              lastToken.raw += token.raw;
+              lastToken.text += token.text;
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          // link
+          if (token = this.tokenizer.link(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // reflink, nolink
+          if (token = this.tokenizer.reflink(src, this.tokens.links)) {
+            src = src.substring(token.raw.length);
+            lastToken = tokens[tokens.length - 1];
+            if (lastToken && token.type === 'text' && lastToken.type === 'text') {
+              lastToken.raw += token.raw;
+              lastToken.text += token.text;
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          // em & strong
+          if (token = this.tokenizer.emStrong(src, maskedSrc, prevChar)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // code
+          if (token = this.tokenizer.codespan(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // br
+          if (token = this.tokenizer.br(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // del (gfm)
+          if (token = this.tokenizer.del(src)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // autolink
+          if (token = this.tokenizer.autolink(src, mangle)) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // url (gfm)
+          if (!this.state.inLink && (token = this.tokenizer.url(src, mangle))) {
+            src = src.substring(token.raw.length);
+            tokens.push(token);
+            continue;
+          }
+
+          // text
+          // prevent inlineText consuming extensions by clipping 'src' to extension start
+          cutSrc = src;
+          if (this.options.extensions && this.options.extensions.startInline) {
+            let startIndex = Infinity;
+            const tempSrc = src.slice(1);
+            let tempStart;
+            this.options.extensions.startInline.forEach(function(getStartIndex) {
+              tempStart = getStartIndex.call({ lexer: this }, tempSrc);
+              if (typeof tempStart === 'number' && tempStart >= 0) { startIndex = Math.min(startIndex, tempStart); }
+            });
+            if (startIndex < Infinity && startIndex >= 0) {
+              cutSrc = src.substring(0, startIndex + 1);
+            }
+          }
+          if (token = this.tokenizer.inlineText(cutSrc, smartypants)) {
+            src = src.substring(token.raw.length);
+            if (token.raw.slice(-1) !== '_') { // Track prevChar before string of ____ started
+              prevChar = token.raw.slice(-1);
+            }
+            keepPrevChar = true;
+            lastToken = tokens[tokens.length - 1];
+            if (lastToken && lastToken.type === 'text') {
+              lastToken.raw += token.raw;
+              lastToken.text += token.text;
+            } else {
+              tokens.push(token);
+            }
+            continue;
+          }
+
+          if (src) {
+            const errMsg = 'Infinite loop on byte: ' + src.charCodeAt(0);
+            if (this.options.silent) {
+              console.error(errMsg);
+              break;
+            } else {
+              throw new Error(errMsg);
+            }
+          }
+        }
+
+        return tokens;
+      }
+    }
+
+    /**
+     * Renderer
+     */
+    class Renderer {
+      constructor(options) {
+        this.options = options || defaults;
+      }
+
+      code(code, infostring, escaped) {
+        const lang = (infostring || '').match(/\S*/)[0];
+        if (this.options.highlight) {
+          const out = this.options.highlight(code, lang);
+          if (out != null && out !== code) {
+            escaped = true;
+            code = out;
+          }
+        }
+
+        code = code.replace(/\n$/, '') + '\n';
+
+        if (!lang) {
+          return '<pre><code>'
+            + (escaped ? code : escape(code, true))
+            + '</code></pre>\n';
+        }
+
+        return '<pre><code class="'
+          + this.options.langPrefix
+          + escape(lang, true)
+          + '">'
+          + (escaped ? code : escape(code, true))
+          + '</code></pre>\n';
+      }
+
+      blockquote(quote) {
+        return '<blockquote>\n' + quote + '</blockquote>\n';
+      }
+
+      html(html) {
+        return html;
+      }
+
+      heading(text, level, raw, slugger) {
+        if (this.options.headerIds) {
+          return '<h'
+            + level
+            + ' id="'
+            + this.options.headerPrefix
+            + slugger.slug(raw)
+            + '">'
+            + text
+            + '</h'
+            + level
+            + '>\n';
+        }
+        // ignore IDs
+        return '<h' + level + '>' + text + '</h' + level + '>\n';
+      }
+
+      hr() {
+        return this.options.xhtml ? '<hr/>\n' : '<hr>\n';
+      }
+
+      list(body, ordered, start) {
+        const type = ordered ? 'ol' : 'ul',
+          startatt = (ordered && start !== 1) ? (' start="' + start + '"') : '';
+        return '<' + type + startatt + '>\n' + body + '</' + type + '>\n';
+      }
+
+      listitem(text) {
+        return '<li>' + text + '</li>\n';
+      }
+
+      checkbox(checked) {
+        return '<input '
+          + (checked ? 'checked="" ' : '')
+          + 'disabled="" type="checkbox"'
+          + (this.options.xhtml ? ' /' : '')
+          + '> ';
+      }
+
+      paragraph(text) {
+        return '<p>' + text + '</p>\n';
+      }
+
+      table(header, body) {
+        if (body) body = '<tbody>' + body + '</tbody>';
+
+        return '<table>\n'
+          + '<thead>\n'
+          + header
+          + '</thead>\n'
+          + body
+          + '</table>\n';
+      }
+
+      tablerow(content) {
+        return '<tr>\n' + content + '</tr>\n';
+      }
+
+      tablecell(content, flags) {
+        const type = flags.header ? 'th' : 'td';
+        const tag = flags.align
+          ? '<' + type + ' align="' + flags.align + '">'
+          : '<' + type + '>';
+        return tag + content + '</' + type + '>\n';
+      }
+
+      // span level renderer
+      strong(text) {
+        return '<strong>' + text + '</strong>';
+      }
+
+      em(text) {
+        return '<em>' + text + '</em>';
+      }
+
+      codespan(text) {
+        return '<code>' + text + '</code>';
+      }
+
+      br() {
+        return this.options.xhtml ? '<br/>' : '<br>';
+      }
+
+      del(text) {
+        return '<del>' + text + '</del>';
+      }
+
+      link(href, title, text) {
+        href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
+        if (href === null) {
+          return text;
+        }
+        let out = '<a href="' + escape(href) + '"';
+        if (title) {
+          out += ' title="' + title + '"';
+        }
+        out += '>' + text + '</a>';
+        return out;
+      }
+
+      image(href, title, text) {
+        href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
+        if (href === null) {
+          return text;
+        }
+
+        let out = '<img src="' + href + '" alt="' + text + '"';
+        if (title) {
+          out += ' title="' + title + '"';
+        }
+        out += this.options.xhtml ? '/>' : '>';
+        return out;
+      }
+
+      text(text) {
+        return text;
+      }
+    }
+
+    /**
+     * TextRenderer
+     * returns only the textual part of the token
+     */
+    class TextRenderer {
+      // no need for block level renderers
+      strong(text) {
+        return text;
+      }
+
+      em(text) {
+        return text;
+      }
+
+      codespan(text) {
+        return text;
+      }
+
+      del(text) {
+        return text;
+      }
+
+      html(text) {
+        return text;
+      }
+
+      text(text) {
+        return text;
+      }
+
+      link(href, title, text) {
+        return '' + text;
+      }
+
+      image(href, title, text) {
+        return '' + text;
+      }
+
+      br() {
+        return '';
+      }
+    }
+
+    /**
+     * Slugger generates header id
+     */
+    class Slugger {
+      constructor() {
+        this.seen = {};
+      }
+
+      serialize(value) {
+        return value
+          .toLowerCase()
+          .trim()
+          // remove html tags
+          .replace(/<[!\/a-z].*?>/ig, '')
+          // remove unwanted chars
+          .replace(/[\u2000-\u206F\u2E00-\u2E7F\\'!"#$%&()*+,./:;<=>?@[\]^`{|}~]/g, '')
+          .replace(/\s/g, '-');
+      }
+
+      /**
+       * Finds the next safe (unique) slug to use
+       */
+      getNextSafeSlug(originalSlug, isDryRun) {
+        let slug = originalSlug;
+        let occurenceAccumulator = 0;
+        if (this.seen.hasOwnProperty(slug)) {
+          occurenceAccumulator = this.seen[originalSlug];
+          do {
+            occurenceAccumulator++;
+            slug = originalSlug + '-' + occurenceAccumulator;
+          } while (this.seen.hasOwnProperty(slug));
+        }
+        if (!isDryRun) {
+          this.seen[originalSlug] = occurenceAccumulator;
+          this.seen[slug] = 0;
+        }
+        return slug;
+      }
+
+      /**
+       * Convert string to unique id
+       * @param {object} options
+       * @param {boolean} options.dryrun Generates the next unique slug without updating the internal accumulator.
+       */
+      slug(value, options = {}) {
+        const slug = this.serialize(value);
+        return this.getNextSafeSlug(slug, options.dryrun);
+      }
+    }
+
+    /**
+     * Parsing & Compiling
+     */
+    class Parser {
+      constructor(options) {
+        this.options = options || defaults;
+        this.options.renderer = this.options.renderer || new Renderer();
+        this.renderer = this.options.renderer;
+        this.renderer.options = this.options;
+        this.textRenderer = new TextRenderer();
+        this.slugger = new Slugger();
+      }
+
+      /**
+       * Static Parse Method
+       */
+      static parse(tokens, options) {
+        const parser = new Parser(options);
+        return parser.parse(tokens);
+      }
+
+      /**
+       * Static Parse Inline Method
+       */
+      static parseInline(tokens, options) {
+        const parser = new Parser(options);
+        return parser.parseInline(tokens);
+      }
+
+      /**
+       * Parse Loop
+       */
+      parse(tokens, top = true) {
+        let out = '',
+          i,
+          j,
+          k,
+          l2,
+          l3,
+          row,
+          cell,
+          header,
+          body,
+          token,
+          ordered,
+          start,
+          loose,
+          itemBody,
+          item,
+          checked,
+          task,
+          checkbox,
+          ret;
+
+        const l = tokens.length;
+        for (i = 0; i < l; i++) {
+          token = tokens[i];
+
+          // Run any renderer extensions
+          if (this.options.extensions && this.options.extensions.renderers && this.options.extensions.renderers[token.type]) {
+            ret = this.options.extensions.renderers[token.type].call({ parser: this }, token);
+            if (ret !== false || !['space', 'hr', 'heading', 'code', 'table', 'blockquote', 'list', 'html', 'paragraph', 'text'].includes(token.type)) {
+              out += ret || '';
+              continue;
+            }
+          }
+
+          switch (token.type) {
+            case 'space': {
+              continue;
+            }
+            case 'hr': {
+              out += this.renderer.hr();
+              continue;
+            }
+            case 'heading': {
+              out += this.renderer.heading(
+                this.parseInline(token.tokens),
+                token.depth,
+                unescape(this.parseInline(token.tokens, this.textRenderer)),
+                this.slugger);
+              continue;
+            }
+            case 'code': {
+              out += this.renderer.code(token.text,
+                token.lang,
+                token.escaped);
+              continue;
+            }
+            case 'table': {
+              header = '';
+
+              // header
+              cell = '';
+              l2 = token.header.length;
+              for (j = 0; j < l2; j++) {
+                cell += this.renderer.tablecell(
+                  this.parseInline(token.header[j].tokens),
+                  { header: true, align: token.align[j] }
+                );
+              }
+              header += this.renderer.tablerow(cell);
+
+              body = '';
+              l2 = token.rows.length;
+              for (j = 0; j < l2; j++) {
+                row = token.rows[j];
+
+                cell = '';
+                l3 = row.length;
+                for (k = 0; k < l3; k++) {
+                  cell += this.renderer.tablecell(
+                    this.parseInline(row[k].tokens),
+                    { header: false, align: token.align[k] }
+                  );
+                }
+
+                body += this.renderer.tablerow(cell);
+              }
+              out += this.renderer.table(header, body);
+              continue;
+            }
+            case 'blockquote': {
+              body = this.parse(token.tokens);
+              out += this.renderer.blockquote(body);
+              continue;
+            }
+            case 'list': {
+              ordered = token.ordered;
+              start = token.start;
+              loose = token.loose;
+              l2 = token.items.length;
+
+              body = '';
+              for (j = 0; j < l2; j++) {
+                item = token.items[j];
+                checked = item.checked;
+                task = item.task;
+
+                itemBody = '';
+                if (item.task) {
+                  checkbox = this.renderer.checkbox(checked);
+                  if (loose) {
+                    if (item.tokens.length > 0 && item.tokens[0].type === 'paragraph') {
+                      item.tokens[0].text = checkbox + ' ' + item.tokens[0].text;
+                      if (item.tokens[0].tokens && item.tokens[0].tokens.length > 0 && item.tokens[0].tokens[0].type === 'text') {
+                        item.tokens[0].tokens[0].text = checkbox + ' ' + item.tokens[0].tokens[0].text;
+                      }
+                    } else {
+                      item.tokens.unshift({
+                        type: 'text',
+                        text: checkbox
+                      });
+                    }
+                  } else {
+                    itemBody += checkbox;
+                  }
+                }
+
+                itemBody += this.parse(item.tokens, loose);
+                body += this.renderer.listitem(itemBody, task, checked);
+              }
+
+              out += this.renderer.list(body, ordered, start);
+              continue;
+            }
+            case 'html': {
+              // TODO parse inline content if parameter markdown=1
+              out += this.renderer.html(token.text);
+              continue;
+            }
+            case 'paragraph': {
+              out += this.renderer.paragraph(this.parseInline(token.tokens));
+              continue;
+            }
+            case 'text': {
+              body = token.tokens ? this.parseInline(token.tokens) : token.text;
+              while (i + 1 < l && tokens[i + 1].type === 'text') {
+                token = tokens[++i];
+                body += '\n' + (token.tokens ? this.parseInline(token.tokens) : token.text);
+              }
+              out += top ? this.renderer.paragraph(body) : body;
+              continue;
+            }
+
+            default: {
+              const errMsg = 'Token with "' + token.type + '" type was not found.';
+              if (this.options.silent) {
+                console.error(errMsg);
+                return;
+              } else {
+                throw new Error(errMsg);
+              }
+            }
+          }
+        }
+
+        return out;
+      }
+
+      /**
+       * Parse Inline Tokens
+       */
+      parseInline(tokens, renderer) {
+        renderer = renderer || this.renderer;
+        let out = '',
+          i,
+          token,
+          ret;
+
+        const l = tokens.length;
+        for (i = 0; i < l; i++) {
+          token = tokens[i];
+
+          // Run any renderer extensions
+          if (this.options.extensions && this.options.extensions.renderers && this.options.extensions.renderers[token.type]) {
+            ret = this.options.extensions.renderers[token.type].call({ parser: this }, token);
+            if (ret !== false || !['escape', 'html', 'link', 'image', 'strong', 'em', 'codespan', 'br', 'del', 'text'].includes(token.type)) {
+              out += ret || '';
+              continue;
+            }
+          }
+
+          switch (token.type) {
+            case 'escape': {
+              out += renderer.text(token.text);
+              break;
+            }
+            case 'html': {
+              out += renderer.html(token.text);
+              break;
+            }
+            case 'link': {
+              out += renderer.link(token.href, token.title, this.parseInline(token.tokens, renderer));
+              break;
+            }
+            case 'image': {
+              out += renderer.image(token.href, token.title, token.text);
+              break;
+            }
+            case 'strong': {
+              out += renderer.strong(this.parseInline(token.tokens, renderer));
+              break;
+            }
+            case 'em': {
+              out += renderer.em(this.parseInline(token.tokens, renderer));
+              break;
+            }
+            case 'codespan': {
+              out += renderer.codespan(token.text);
+              break;
+            }
+            case 'br': {
+              out += renderer.br();
+              break;
+            }
+            case 'del': {
+              out += renderer.del(this.parseInline(token.tokens, renderer));
+              break;
+            }
+            case 'text': {
+              out += renderer.text(token.text);
+              break;
+            }
+            default: {
+              const errMsg = 'Token with "' + token.type + '" type was not found.';
+              if (this.options.silent) {
+                console.error(errMsg);
+                return;
+              } else {
+                throw new Error(errMsg);
+              }
+            }
+          }
+        }
+        return out;
+      }
+    }
+
+    /**
+     * Marked
+     */
+    function marked(src, opt, callback) {
+      // throw error in case of non string input
+      if (typeof src === 'undefined' || src === null) {
+        throw new Error('marked(): input parameter is undefined or null');
+      }
+      if (typeof src !== 'string') {
+        throw new Error('marked(): input parameter is of type '
+          + Object.prototype.toString.call(src) + ', string expected');
+      }
+
+      if (typeof opt === 'function') {
+        callback = opt;
+        opt = null;
+      }
+
+      opt = merge({}, marked.defaults, opt || {});
+      checkSanitizeDeprecation(opt);
+
+      if (callback) {
+        const highlight = opt.highlight;
+        let tokens;
+
+        try {
+          tokens = Lexer.lex(src, opt);
+        } catch (e) {
+          return callback(e);
+        }
+
+        const done = function(err) {
+          let out;
+
+          if (!err) {
+            try {
+              if (opt.walkTokens) {
+                marked.walkTokens(tokens, opt.walkTokens);
+              }
+              out = Parser.parse(tokens, opt);
+            } catch (e) {
+              err = e;
+            }
+          }
+
+          opt.highlight = highlight;
+
+          return err
+            ? callback(err)
+            : callback(null, out);
+        };
+
+        if (!highlight || highlight.length < 3) {
+          return done();
+        }
+
+        delete opt.highlight;
+
+        if (!tokens.length) return done();
+
+        let pending = 0;
+        marked.walkTokens(tokens, function(token) {
+          if (token.type === 'code') {
+            pending++;
+            setTimeout(() => {
+              highlight(token.text, token.lang, function(err, code) {
+                if (err) {
+                  return done(err);
+                }
+                if (code != null && code !== token.text) {
+                  token.text = code;
+                  token.escaped = true;
+                }
+
+                pending--;
+                if (pending === 0) {
+                  done();
+                }
+              });
+            }, 0);
+          }
+        });
+
+        if (pending === 0) {
+          done();
+        }
+
+        return;
+      }
+
+      try {
+        const tokens = Lexer.lex(src, opt);
+        if (opt.walkTokens) {
+          marked.walkTokens(tokens, opt.walkTokens);
+        }
+        return Parser.parse(tokens, opt);
+      } catch (e) {
+        e.message += '\nPlease report this to https://github.com/markedjs/marked.';
+        if (opt.silent) {
+          return '<p>An error occurred:</p><pre>'
+            + escape(e.message + '', true)
+            + '</pre>';
+        }
+        throw e;
+      }
+    }
+
+    /**
+     * Options
+     */
+
+    marked.options =
+    marked.setOptions = function(opt) {
+      merge(marked.defaults, opt);
+      changeDefaults(marked.defaults);
+      return marked;
+    };
+
+    marked.getDefaults = getDefaults;
+
+    marked.defaults = defaults;
+
+    /**
+     * Use Extension
+     */
+
+    marked.use = function(...args) {
+      const opts = merge({}, ...args);
+      const extensions = marked.defaults.extensions || { renderers: {}, childTokens: {} };
+      let hasExtensions;
+
+      args.forEach((pack) => {
+        // ==-- Parse "addon" extensions --== //
+        if (pack.extensions) {
+          hasExtensions = true;
+          pack.extensions.forEach((ext) => {
+            if (!ext.name) {
+              throw new Error('extension name required');
+            }
+            if (ext.renderer) { // Renderer extensions
+              const prevRenderer = extensions.renderers ? extensions.renderers[ext.name] : null;
+              if (prevRenderer) {
+                // Replace extension with func to run new extension but fall back if false
+                extensions.renderers[ext.name] = function(...args) {
+                  let ret = ext.renderer.apply(this, args);
+                  if (ret === false) {
+                    ret = prevRenderer.apply(this, args);
+                  }
+                  return ret;
+                };
+              } else {
+                extensions.renderers[ext.name] = ext.renderer;
+              }
+            }
+            if (ext.tokenizer) { // Tokenizer Extensions
+              if (!ext.level || (ext.level !== 'block' && ext.level !== 'inline')) {
+                throw new Error("extension level must be 'block' or 'inline'");
+              }
+              if (extensions[ext.level]) {
+                extensions[ext.level].unshift(ext.tokenizer);
+              } else {
+                extensions[ext.level] = [ext.tokenizer];
+              }
+              if (ext.start) { // Function to check for start of token
+                if (ext.level === 'block') {
+                  if (extensions.startBlock) {
+                    extensions.startBlock.push(ext.start);
+                  } else {
+                    extensions.startBlock = [ext.start];
+                  }
+                } else if (ext.level === 'inline') {
+                  if (extensions.startInline) {
+                    extensions.startInline.push(ext.start);
+                  } else {
+                    extensions.startInline = [ext.start];
+                  }
+                }
+              }
+            }
+            if (ext.childTokens) { // Child tokens to be visited by walkTokens
+              extensions.childTokens[ext.name] = ext.childTokens;
+            }
+          });
+        }
+
+        // ==-- Parse "overwrite" extensions --== //
+        if (pack.renderer) {
+          const renderer = marked.defaults.renderer || new Renderer();
+          for (const prop in pack.renderer) {
+            const prevRenderer = renderer[prop];
+            // Replace renderer with func to run extension, but fall back if false
+            renderer[prop] = (...args) => {
+              let ret = pack.renderer[prop].apply(renderer, args);
+              if (ret === false) {
+                ret = prevRenderer.apply(renderer, args);
+              }
+              return ret;
+            };
+          }
+          opts.renderer = renderer;
+        }
+        if (pack.tokenizer) {
+          const tokenizer = marked.defaults.tokenizer || new Tokenizer();
+          for (const prop in pack.tokenizer) {
+            const prevTokenizer = tokenizer[prop];
+            // Replace tokenizer with func to run extension, but fall back if false
+            tokenizer[prop] = (...args) => {
+              let ret = pack.tokenizer[prop].apply(tokenizer, args);
+              if (ret === false) {
+                ret = prevTokenizer.apply(tokenizer, args);
+              }
+              return ret;
+            };
+          }
+          opts.tokenizer = tokenizer;
+        }
+
+        // ==-- Parse WalkTokens extensions --== //
+        if (pack.walkTokens) {
+          const walkTokens = marked.defaults.walkTokens;
+          opts.walkTokens = function(token) {
+            pack.walkTokens.call(this, token);
+            if (walkTokens) {
+              walkTokens.call(this, token);
+            }
+          };
+        }
+
+        if (hasExtensions) {
+          opts.extensions = extensions;
+        }
+
+        marked.setOptions(opts);
+      });
+    };
+
+    /**
+     * Run callback for every token
+     */
+
+    marked.walkTokens = function(tokens, callback) {
+      for (const token of tokens) {
+        callback.call(marked, token);
+        switch (token.type) {
+          case 'table': {
+            for (const cell of token.header) {
+              marked.walkTokens(cell.tokens, callback);
+            }
+            for (const row of token.rows) {
+              for (const cell of row) {
+                marked.walkTokens(cell.tokens, callback);
+              }
+            }
+            break;
+          }
+          case 'list': {
+            marked.walkTokens(token.items, callback);
+            break;
+          }
+          default: {
+            if (marked.defaults.extensions && marked.defaults.extensions.childTokens && marked.defaults.extensions.childTokens[token.type]) { // Walk any extensions
+              marked.defaults.extensions.childTokens[token.type].forEach(function(childTokens) {
+                marked.walkTokens(token[childTokens], callback);
+              });
+            } else if (token.tokens) {
+              marked.walkTokens(token.tokens, callback);
+            }
+          }
+        }
+      }
+    };
+
+    /**
+     * Parse Inline
+     */
+    marked.parseInline = function(src, opt) {
+      // throw error in case of non string input
+      if (typeof src === 'undefined' || src === null) {
+        throw new Error('marked.parseInline(): input parameter is undefined or null');
+      }
+      if (typeof src !== 'string') {
+        throw new Error('marked.parseInline(): input parameter is of type '
+          + Object.prototype.toString.call(src) + ', string expected');
+      }
+
+      opt = merge({}, marked.defaults, opt || {});
+      checkSanitizeDeprecation(opt);
+
+      try {
+        const tokens = Lexer.lexInline(src, opt);
+        if (opt.walkTokens) {
+          marked.walkTokens(tokens, opt.walkTokens);
+        }
+        return Parser.parseInline(tokens, opt);
+      } catch (e) {
+        e.message += '\nPlease report this to https://github.com/markedjs/marked.';
+        if (opt.silent) {
+          return '<p>An error occurred:</p><pre>'
+            + escape(e.message + '', true)
+            + '</pre>';
+        }
+        throw e;
+      }
+    };
+
+    /**
+     * Expose
+     */
+    marked.Parser = Parser;
+    marked.parser = Parser.parse;
+    marked.Renderer = Renderer;
+    marked.TextRenderer = TextRenderer;
+    marked.Lexer = Lexer;
+    marked.lexer = Lexer.lex;
+    marked.Tokenizer = Tokenizer;
+    marked.Slugger = Slugger;
+    marked.parse = marked;
+    Parser.parse;
+    Lexer.lex;
+
     /** 
      * Dispatch event on click outside of the DOM element in the argument.
      * Imported into any component that needs to open/close
@@ -4652,7 +7358,7 @@
     	}
     }
 
-    /* src/ui/MultiSelect.svelte generated by Svelte v3.44.2 */
+    /* src/ui/MultiSelect.svelte generated by Svelte v3.44.3 */
 
     function get_each_context$1(ctx, list, i) {
     	const child_ctx = ctx.slice();
@@ -5252,27 +7958,27 @@
     	}
     }
 
-    /* src/ui/Bot.svelte generated by Svelte v3.44.2 */
+    /* src/ui/Bot.svelte generated by Svelte v3.44.3 */
 
     function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[39] = list[i];
-    	child_ctx[41] = i;
+    	child_ctx[38] = list[i];
+    	child_ctx[40] = i;
     	return child_ctx;
     }
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[39] = list[i];
-    	child_ctx[41] = i;
+    	child_ctx[38] = list[i];
+    	child_ctx[40] = i;
     	return child_ctx;
     }
 
     function get_each_context_2(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[43] = list[i].slot;
-    	child_ctx[44] = list[i].userReplyValues;
-    	child_ctx[46] = i;
+    	child_ctx[42] = list[i].slot;
+    	child_ctx[43] = list[i].userReplyValues;
+    	child_ctx[45] = i;
     	return child_ctx;
     }
 
@@ -5370,13 +8076,13 @@
     	let div6;
     	let div1;
     	let div0;
-    	let raw0_value = /*marked*/ ctx[13](/*frameIntroduction*/ ctx[8]) + "";
+    	let raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "";
     	let t0;
     	let t1;
     	let div5;
     	let div2;
     	let p;
-    	let raw1_value = /*marked*/ ctx[13](/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "";
+    	let raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "";
     	let t2;
     	let div4;
     	let div3;
@@ -5416,7 +8122,7 @@
     		if_block0 = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
     	}
 
-    	let if_block1 = /*showRestartButton*/ ctx[14] && create_if_block_1();
+    	let if_block1 = /*showRestartButton*/ ctx[13] && create_if_block_1();
 
     	return {
     		c() {
@@ -5482,8 +8188,8 @@
     			current = true;
     		},
     		p(ctx, dirty) {
-    			if ((!current || dirty[0] & /*frameIntroduction*/ 256) && raw0_value !== (raw0_value = /*marked*/ ctx[13](/*frameIntroduction*/ ctx[8]) + "")) div0.innerHTML = raw0_value;
-    			if (dirty[0] & /*editUserReply, completedRounds, marked*/ 139266) {
+    			if ((!current || dirty[0] & /*frameIntroduction*/ 256) && raw0_value !== (raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "")) div0.innerHTML = raw0_value;
+    			if (dirty[0] & /*editUserReply, completedRounds*/ 65538) {
     				each_value_2 = /*completedRounds*/ ctx[1].slice(0, -1);
     				let i;
 
@@ -5506,7 +8212,7 @@
     				each_blocks.length = each_value_2.length;
     			}
 
-    			if ((!current || dirty[0] & /*completedRounds*/ 2) && raw1_value !== (raw1_value = /*marked*/ ctx[13](/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
+    			if ((!current || dirty[0] & /*completedRounds*/ 2) && raw1_value !== (raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
     			current_block_type_index = select_block_type_1(ctx);
 
     			if (current_block_type_index === previous_block_index) {
@@ -5567,7 +8273,7 @@
     function create_if_block_8(ctx) {
     	let div;
     	let p;
-    	let t0_value = /*userReplyValues*/ ctx[44].join(", ") + "";
+    	let t0_value = /*userReplyValues*/ ctx[43].join(", ") + "";
     	let t0;
     	let t1;
     	let svg;
@@ -5576,7 +8282,7 @@
     	let dispose;
 
     	function click_handler() {
-    		return /*click_handler*/ ctx[25](/*rewoundRoundIndex*/ ctx[46]);
+    		return /*click_handler*/ ctx[24](/*rewoundRoundIndex*/ ctx[45]);
     	}
 
     	return {
@@ -5611,7 +8317,7 @@
     		},
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
-    			if (dirty[0] & /*completedRounds*/ 2 && t0_value !== (t0_value = /*userReplyValues*/ ctx[44].join(", ") + "")) set_data(t0, t0_value);
+    			if (dirty[0] & /*completedRounds*/ 2 && t0_value !== (t0_value = /*userReplyValues*/ ctx[43].join(", ") + "")) set_data(t0, t0_value);
     		},
     		d(detaching) {
     			if (detaching) detach(div);
@@ -5625,10 +8331,10 @@
     function create_each_block_2(ctx) {
     	let div;
     	let p;
-    	let raw_value = /*marked*/ ctx[13](/*slot*/ ctx[43].ask) + "";
+    	let raw_value = marked(/*slot*/ ctx[42].ask) + "";
     	let t0;
     	let t1;
-    	let if_block = /*userReplyValues*/ ctx[44].length > 0 && create_if_block_8(ctx);
+    	let if_block = /*userReplyValues*/ ctx[43].length > 0 && create_if_block_8(ctx);
 
     	return {
     		c() {
@@ -5650,8 +8356,8 @@
     			append(div, t1);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*completedRounds*/ 2 && raw_value !== (raw_value = /*marked*/ ctx[13](/*slot*/ ctx[43].ask) + "")) p.innerHTML = raw_value;
-    			if (/*userReplyValues*/ ctx[44].length > 0) {
+    			if (dirty[0] & /*completedRounds*/ 2 && raw_value !== (raw_value = marked(/*slot*/ ctx[42].ask) + "")) p.innerHTML = raw_value;
+    			if (/*userReplyValues*/ ctx[43].length > 0) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
@@ -5771,10 +8477,10 @@
 
     			if (!mounted) {
     				dispose = [
-    					listen(input, "input", /*input_input_handler*/ ctx[29]),
-    					listen(input, "keyup", /*keyup_handler*/ ctx[30]),
-    					listen(button, "click", /*handleTextInput*/ ctx[19]),
-    					listen(span, "click", /*click_handler_3*/ ctx[31])
+    					listen(input, "input", /*input_input_handler*/ ctx[28]),
+    					listen(input, "keyup", /*keyup_handler*/ ctx[29]),
+    					listen(button, "click", /*handleTextInput*/ ctx[18]),
+    					listen(span, "click", /*click_handler_3*/ ctx[30])
     				];
 
     				mounted = true;
@@ -5806,7 +8512,7 @@
     			props: { replyOptions: /*replyOptions*/ ctx[2] }
     		});
 
-    	multiselect.$on("message", /*multiReplySubmit*/ ctx[16]);
+    	multiselect.$on("message", /*multiReplySubmit*/ ctx[15]);
 
     	return {
     		c() {
@@ -5866,7 +8572,7 @@
     			button = element("button");
     			button.textContent = "Done";
     			attr(select, "class", "block w-full pl-2 pr-10 text-base font-medium border-gray-300 focus:outline-none focus:ring-primary-color sm:text-sm rounded-md");
-    			if (/*selectedReplyIndex*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[27].call(select));
+    			if (/*selectedReplyIndex*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[26].call(select));
     			attr(div0, "class", "w-full sm:max-w-xs");
     			attr(button, "type", "button");
     			attr(button, "class", "mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
@@ -5887,8 +8593,8 @@
 
     			if (!mounted) {
     				dispose = [
-    					listen(select, "change", /*select_change_handler*/ ctx[27]),
-    					listen(button, "click", /*click_handler_2*/ ctx[28])
+    					listen(select, "change", /*select_change_handler*/ ctx[26]),
+    					listen(button, "click", /*click_handler_2*/ ctx[27])
     				];
 
     				mounted = true;
@@ -5937,7 +8643,7 @@
     function create_if_block_2(ctx) {
     	let div1;
     	let div0;
-    	let each_value = /*adaptRepliesToText*/ ctx[18](/*replyOptions*/ ctx[2]);
+    	let each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[2]);
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
@@ -5965,8 +8671,8 @@
     			}
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 294916) {
-    				each_value = /*adaptRepliesToText*/ ctx[18](/*replyOptions*/ ctx[2]);
+    			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 147460) {
+    				each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[2]);
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
@@ -6000,7 +8706,7 @@
     // (673:18) {#each replyOptions as userReplyValue, userReplyIndex}
     function create_each_block_1(ctx) {
     	let option;
-    	let t_value = /*userReplyValue*/ ctx[39] + "";
+    	let t_value = /*userReplyValue*/ ctx[38] + "";
     	let t;
     	let option_value_value;
 
@@ -6008,7 +8714,7 @@
     		c() {
     			option = element("option");
     			t = text(t_value);
-    			option.__value = option_value_value = /*userReplyIndex*/ ctx[41];
+    			option.__value = option_value_value = /*userReplyIndex*/ ctx[40];
     			option.value = option.__value;
     		},
     		m(target, anchor) {
@@ -6016,7 +8722,7 @@
     			append(option, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*replyOptions*/ 4 && t_value !== (t_value = /*userReplyValue*/ ctx[39] + "")) set_data(t, t_value);
+    			if (dirty[0] & /*replyOptions*/ 4 && t_value !== (t_value = /*userReplyValue*/ ctx[38] + "")) set_data(t, t_value);
     		},
     		d(detaching) {
     			if (detaching) detach(option);
@@ -6027,7 +8733,7 @@
     // (643:16) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
     function create_each_block(ctx) {
     	let button;
-    	let t0_value = /*userReplyValue*/ ctx[39] + "";
+    	let t0_value = /*userReplyValue*/ ctx[38] + "";
     	let t0;
     	let t1;
     	let button_id_value;
@@ -6035,7 +8741,7 @@
     	let dispose;
 
     	function click_handler_1() {
-    		return /*click_handler_1*/ ctx[26](/*userReplyValue*/ ctx[39], /*userReplyIndex*/ ctx[41]);
+    		return /*click_handler_1*/ ctx[25](/*userReplyValue*/ ctx[38], /*userReplyIndex*/ ctx[40]);
     	}
 
     	return {
@@ -6045,7 +8751,7 @@
     			t1 = space();
     			attr(button, "type", "button");
     			attr(button, "class", "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
-    			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[41]);
+    			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[40]);
     		},
     		m(target, anchor) {
     			insert(target, button, anchor);
@@ -6059,7 +8765,7 @@
     		},
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
-    			if (dirty[0] & /*replyOptions*/ 4 && t0_value !== (t0_value = /*userReplyValue*/ ctx[39] + "")) set_data(t0, t0_value);
+    			if (dirty[0] & /*replyOptions*/ 4 && t0_value !== (t0_value = /*userReplyValue*/ ctx[38] + "")) set_data(t0, t0_value);
     		},
     		d(detaching) {
     			if (detaching) detach(button);
@@ -6221,9 +8927,6 @@
     	let { propGetConfigFromRemote = false } = $$props;
     	let { localStorageKey } = $$props;
     	let { waitForStartNewConversation = false } = $$props;
-
-    	// @rollup/plugin-commonjs enables the conversion to ES6 modules
-    	const marked = require('marked');
 
     	/************ variables used in the UI/DOM **********/
     	let localeString; // String: unicode locale string used for language specific sorting
@@ -6632,9 +9335,9 @@
     	const click_handler_3 = () => $$invalidate(3, showReplyOptions = true);
 
     	$$self.$$set = $$props => {
-    		if ('propBotConfig' in $$props) $$invalidate(21, propBotConfig = $$props.propBotConfig);
-    		if ('propGetConfigFromRemote' in $$props) $$invalidate(22, propGetConfigFromRemote = $$props.propGetConfigFromRemote);
-    		if ('localStorageKey' in $$props) $$invalidate(23, localStorageKey = $$props.localStorageKey);
+    		if ('propBotConfig' in $$props) $$invalidate(20, propBotConfig = $$props.propBotConfig);
+    		if ('propGetConfigFromRemote' in $$props) $$invalidate(21, propGetConfigFromRemote = $$props.propGetConfigFromRemote);
+    		if ('localStorageKey' in $$props) $$invalidate(22, localStorageKey = $$props.localStorageKey);
     		if ('waitForStartNewConversation' in $$props) $$invalidate(0, waitForStartNewConversation = $$props.waitForStartNewConversation);
     	};
 
@@ -6652,7 +9355,6 @@
     		showBotUI,
     		showLoadingWaitUI,
     		showUnfriendlyError,
-    		marked,
     		showRestartButton,
     		singleReplyClick,
     		multiReplySubmit,
@@ -6685,11 +9387,11 @@
     			create_fragment,
     			safe_not_equal,
     			{
-    				propBotConfig: 21,
-    				propGetConfigFromRemote: 22,
-    				localStorageKey: 23,
+    				propBotConfig: 20,
+    				propGetConfigFromRemote: 21,
+    				localStorageKey: 22,
     				waitForStartNewConversation: 0,
-    				startNewConversation: 24
+    				startNewConversation: 23
     			},
     			null,
     			[-1, -1]
@@ -6697,7 +9399,7 @@
     	}
 
     	get startNewConversation() {
-    		return this.$$.ctx[24];
+    		return this.$$.ctx[23];
     	}
     }
 
