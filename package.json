@@ -14,7 +14,7 @@
     "url": "https://github.com/page-support/Bot.git"
   },
   "license": "MIT",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "svelte": "src/index.js",
   "module": "dist/index.mjs",
   "main": "dist/index.js",
@@ -73,7 +73,6 @@
     "@tailwindcss/forms": "^0.3.0",
     "@tailwindcss/typography": "^0.4.1",
     "expr-eval": "^2.0.2",
-    "fsevents": "^2.3.2",
     "marked": "^4.0.9",
     "page-support-bot": "^1.0.1",
     "ramda": "^0.27.1"

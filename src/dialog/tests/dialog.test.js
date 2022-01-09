@@ -133,7 +133,7 @@ test('Answers 2', () => {
 // Verizon test case using test_verizon_answers.json
 test('Answers 1', () => {
   let completedRounds, replyType, replyOptions;
-  console.log(JSON.stringify(testBConfig, null, 2));
+  //console.log(JSON.stringify(testBConfig, null, 2));
   saveBotState(testBConfig, localStorageKey);
   initConversation(testBConfig, testBConfig.startFrameId, localStorageKey); // uses verizon.bot.page.support.json in Publisher
 
@@ -167,7 +167,7 @@ test('Answers 1', () => {
 
   // Last round 
   ({completedRounds, replyType, replyOptions} = getNextSlot(localStorageKey));
-  console.log(JSON.stringify(completedRounds, null, 2));
+  //console.log(JSON.stringify(completedRounds, null, 2));
   expect(completedRounds[3].slot.ask).toMatch(/first answer/);
 });
 

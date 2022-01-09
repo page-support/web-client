@@ -71,7 +71,7 @@ Bot supports the following props:
 * localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
 * waitForStartNewConversation is an optional Boolean that defaults to false. If set to true, it tells this component to display nothing until startNewConversation() is called. This allows <Bot> to be added to the DOM without rendering anything. Its binding will be available, which lets the containing site call startNewConversation.
 
-The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, and postcss.config.js files for build configuration requirements.
+The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 
 
 ### Add Bot as an iife file to your HTML
@@ -121,59 +121,32 @@ Don't forget to add the [page-support-bot-bundle.css](https://github.com/page-su
 
 
 ### Conversation initialization
+When your user first loads the page, the Bot will display and start a new conversation by default. Bot will maintain conversation state across page reloads in a tab by using sessionStorage. Closing the tab will end the conversation. 
 
-When your user first loads the page, the Bot will display and start a new 
-conversation by default. Bot will maintain conversation state across page 
-reloads in a tab by using sessionStorage. Closing the tab will end the 
-conversation. 
+If you want to give your web application control over when the Bot displays, use your web framework's conditional loading/display - usually some type of if block.
 
-If you want to give your web application control over when the Bot displays, 
-use your web framework's conditional loading/display - usually some type of 
-if block.
-
-If you want give your web application control over starting and restarting a
-conversation, use `botBinding.startNewConversation(botConfig);` to start 
-a new conversation with the passed in configuration. It also lets you give the user
-control over when to engage with the bot instead of launching it by default.
+If you want give your web application control over starting and restarting a conversation, use `botBinding.startNewConversation(botConfig);` to start a new conversation with the passed in configuration. It also lets you give the user control over when to engage with the bot instead of launching it by default.
 
 
 ### Testing
+This component includes setup files to perform visual testing in [Storybook](https://storybook.js.org). See the /.storybook directory in this repository for Storybook setup, and the ui/Bot.stories.js file for user stories and their test files. Since Bot is a component rather than a fully functioning website, Storybook provides an environment to test the component across different user stories without having to first do an integration with your website.
 
-This component includes setup files to perform visual testing in [Storybook]
-(https://storybook.js.org). See the /.storybook directory in this repository for 
-Storybook setup, and the ui/Bot.stories.js file for user stories and their test
-files. Since Bot is a component rather than a fully functioning website, 
-Storybook provides an environment to test the component across different 
-user stories without having to first do an integration with your website.
+Install Storybook, then type `npm run storybook` when in this repository's parent directory then open Storybook at localhost:6006
 
-Install Storybook, then type `npm run storybook` when in this repository's 
-parent directory then open Storybook at localhost:6006
-
-For automated tests, this component uses Jest. To run automated tests of 
-dialog.js and lower level functions, see tests under src/dialog/tests and 
-follow the instructions in the test file. Tests are sparse now, feel free to 
-submit more with pull requests.
+For automated tests, this component uses Jest. To run automated tests of dialog.js and lower level functions, see tests under src/dialog/tests and follow the instructions in the test file. Tests are sparse now, feel free to submit more with pull requests.
 
 ### Customizing and Building
-If you make modifications to the Bot then want to deploy the changes to your 
-website, run `$ npm run build` which will drop three files in the /dist 
-directory:
+If you make modifications to the Bot then want to deploy the changes to your website, run `$ npm run build` which will drop three files in the /dist directory:
 
 - index.mjs is an ES6 module file for importation into your build.   
 - index.min.js is a IIFE file for websites that do not use a modern build
 
 ### Server integration and Data Persistence
 
-By default Bot only relies on the botConfig to drive its behavior so doesn't 
-need to talk to a server. However if you want to personalize Bot's behavior, for example 
-by loading user data, we will be adding simple integrations with arbitrary URLs 
-and APIs in the next release. Those integrations will also enable saving user 
-replies to an API on your server. 
+By default Bot only relies on the botConfig to drive its behavior so doesn't need to talk to a server. However if you want to personalize Bot's behavior, for example by loading user data, we will be adding simple integrations with arbitrary URLs and APIs in the next release. Those integrations will also enable saving user replies to an API on your server. 
 
 If you want to do this now, you can customize the bot to 
-load user data. Call out to your server right before the loadUI() function in 
-Bot.svelte. To save individual user replies see the saveReply() function in 
-dialog.js. To save an updated version of the entire conversation after every user reply see 
+load user data. Call out to your server right before the loadUI() function in Bot.svelte. To save individual user replies see the saveReply() function in dialog.js. To save an updated version of the entire conversation after every user reply see 
 saveConversation() in state.js. 
 
 ### Versioning and Compatibility
