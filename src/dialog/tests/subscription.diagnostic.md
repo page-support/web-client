@@ -1,6 +1,6 @@
 <!-- query: cancel apple subscription --> 
 ### About canceling a subscription
-Subscriptions drain your bank account, here's how to stop it from continuing
+How to cancel your subscription varies by the device you are on.
 - Most subscriptions automatically renew unless you cancel them.
 - If you cancel, you can keep using the subscription until the next billing date.
 - If you cancel during a trial period, you might lose access to content immediately. 
