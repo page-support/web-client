@@ -92,18 +92,25 @@ Add the [page.support.min.js](https://github.com/page-support/web-client/blob/ma
 // version control, or load from static file server if not
 import botConfig from "/path/to/page.support.botconfig.js"
 
-let bot;
+// Set to the id of the DOM element you want the bot attached to
+const botDOMId = 'netDiaBot';  
+
 document.addEventListener("DOMContentLoaded", function() {
-    if (document.getElementById('bot')) {
-      // PageSupportBot is the name of the var in the iife function 
+
+    // The DOM element the Bot will be attached to
+    el = document.getElementById(botDOMId);
+    if (el) {
+      // PageSupportBot is the name of the var exported by page.support.min.js 
       // Bot is the constructor it exports.   
-      bot = new PageSupportBot.Bot({
-        target: document.getElementById('bot'),
+      const bot = new PageSupportBot.Bot({
+        target: el,
         props: {
           propBotConfig: botConfig,
           localStorageKey: 'botNumberOne'
         }
       });
+    } else {
+      console.log(`page.support bot setup script failed to find "${botDOMId}" in DOM`);
     } 
 })
 
