@@ -17,10 +17,58 @@ If your bot requires reading or writing data from a server, e.g. for authenticat
 
 There are several ways to integrate Bot into your website. In all cases, Bot needs three files to function and potentially other files like images:
 
-* The Bot javascript component in this repository. You can fork this repo or install the component with `npm install page-support-bot`
-* A configuration file that defines the bot's behavior. This file will be produced by a publisher like the one at publisher.page.support. Click the download button to get a ES6 module version of the file. In the future this will be loaded from publisher.page.support so the behavior of your bot doesn't require pushing a code release.
+* The Bot javascript component in this repository. You can fork this repo or install the component with `npm install page-support-bot` or follow the directions below to add it as an iife file.
+* A configuration file (referred to as "botConfig") that defines the bot's behavior. This file will be produced by a publisher like the one at [publisher.page.support](https://publisher.page.support). Click the download button to get a ES6 module version of the file. In the future this will be loaded from [publisher.page.support](https://publisher.page.support) so the behavior of your bot doesn't require pushing a code release.
 * A [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file. 
-* If you botConfig includes references to images, you'll need to host them on an server at whatever URLs you used in your markdown.
+* If your botConfig includes references to images, you'll need to host them on an server at whatever URLs you used in your markdown.
+
+
+### Add Bot as an iife file to your HTML
+
+If you don't have a javascript build pipeline or don't have access to a software developer, you can add Bot as an iife file. This scenario requires you to host static assets like css files and images on a server or storage bucket you control. It also requires the ability to add the script below to the header of the web page where you'd like the bot to appear.
+
+Add the [index.min.js](https://github.com/page-support/web-client/blob/main/dist/index.min.js), [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css), and page.support.botconfig.js files to the page where you want to your users to see the bot.
+
+```
+<script src="/index.min.js" ></script>
+<link rel="stylesheet" type="text/css" href="/page-support-bot-bundle.css" />
+
+<script type="module"> 
+
+// Import your Bot client definition.
+// 1. download the botconfig file from publisher.page.support 
+// 2. save it to your application's repository if you want it under
+// version control, or load from static file server if not
+import botConfig from "/path/to/page.support.botconfig.js"
+
+// Set to the id of the DOM element you want the bot attached to
+const botDOMId = 'netDiaBot';  
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    // The DOM element the Bot will be attached to
+    el = document.getElementById(botDOMId);
+    if (el) {
+      // PageSupportBot is the name of the var exported by page.support.min.js 
+      // Bot is the constructor it exports.   
+      const bot = new PageSupportBot.Bot({
+        target: el,
+        props: {
+          propBotConfig: botConfig,
+          localStorageKey: 'botNumberOne'
+        }
+      });
+    } else {
+      console.log(`page.support bot setup script failed to find "${botDOMId}" in DOM`);
+    } 
+})
+
+</script>
+
+<div id="bot"></div>
+
+```
+
 
 ### Add Bot to your javascript build pipeline
 
@@ -74,51 +122,7 @@ Bot supports the following props:
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 
 
-### Add Bot as an iife file to your HTML
 
-If you don't have a js build pipeline, perhaps because your website is server side rendered, like a Rails app or third party web host, you can add Bot as an iife file. This scenario also requires you to host static assets like css files and images on a server or storage bucket you control.
-
-Add the [page.support.min.js](https://github.com/page-support/web-client/blob/main/dist/index.min.js), [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css), and page.support.botconfig.js files to the page where you want to your users to see the bot.
-
-```
-<script src="/page.support.min.js" ></script>
-<link rel="stylesheet" type="text/css" href="/page-support-bot-bundle.css" />
-
-<script type="module"> 
-
-// Import your Bot client definition.
-// 1. download the botconfig file from publisher.page.support 
-// 2. save it to your application's repository if you want it under
-// version control, or load from static file server if not
-import botConfig from "/path/to/page.support.botconfig.js"
-
-// Set to the id of the DOM element you want the bot attached to
-const botDOMId = 'netDiaBot';  
-
-document.addEventListener("DOMContentLoaded", function() {
-
-    // The DOM element the Bot will be attached to
-    el = document.getElementById(botDOMId);
-    if (el) {
-      // PageSupportBot is the name of the var exported by page.support.min.js 
-      // Bot is the constructor it exports.   
-      const bot = new PageSupportBot.Bot({
-        target: el,
-        props: {
-          propBotConfig: botConfig,
-          localStorageKey: 'botNumberOne'
-        }
-      });
-    } else {
-      console.log(`page.support bot setup script failed to find "${botDOMId}" in DOM`);
-    } 
-})
-
-</script>
-
-<div id="bot"></div>
-
-```
 
 
 ### Add static assets - images and css
