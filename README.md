@@ -25,7 +25,7 @@ There are several ways to integrate Bot into your website. In all cases, Bot nee
 
 ### Add Bot as an iife file to your HTML
 
-If you don't have a javascript build pipeline or don't have access to a software developer, you can add Bot as an iife file. This scenario requires you to host static assets like css files and images on a server or storage bucket you control. It also requires the ability to add the script below to the header of the web page where you'd like the bot to appear.
+If you don't have a javascript build pipeline or don't have access to a software developer, you can add Bot as an iife file. This scenario requires you to host the three files above and any images you need on your web server or a storage bucket you control. It also requires the ability to add the script below to the header of the web page where you'd like the bot to appear. Edit the paths in the script based on where you uploaded the files so your web server can find them.
 
 Add the [index.min.js](https://github.com/page-support/web-client/blob/main/dist/index.min.js), [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css), and page.support.botconfig.js files to the page where you want to your users to see the bot.
 
