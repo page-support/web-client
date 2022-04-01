@@ -1,6 +1,6 @@
 (function (global, factory) {
-    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
-    typeof define === 'function' && define.amd ? define(['exports'], factory) :
+    typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('assert')) :
+    typeof define === 'function' && define.amd ? define(['exports', 'assert'], factory) :
     (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.PageSupportBot = {}));
 })(this, (function (exports) { 'use strict';
 
@@ -394,11 +394,11 @@
     const REMOTE_CONFIG_URL = 'TBD';
 
     // botConfigVersion version will be used to compare against the botConfig file version if
-    // 1.0.3 is NOT set to a version string. Edit botConfigVersion
+    // 1.0.4 is NOT set to a version string. Edit botConfigVersion
     // if you are using your own build pipeline and need to adapt to a higher
     // version botConfig. 
     // See versionCompatible() function and the README for details.
-    const pkgBotVersion = '1.0.3';
+    const pkgBotVersion = '1.0.4';
     const botVersion = '1.0.0';
 
 
@@ -497,7 +497,7 @@
      * caller or parent should use try block
      */
     function versionCompatible(version) {
-      // if deployer of Bot is using `npm run build` 1.0.3 will
+      // if deployer of Bot is using `npm run build` 1.0.4 will
       // be set by rollup. If its not set, the constant botConfigVersion
       // at the top of this file will be used. If your build pipeline doesn't use 
       // npm run build, e.g. if you are building Bot into your own website with
@@ -4285,12 +4285,12 @@
      * Args:
      *   frames: bot.frames (from newBot constructor in BotConfig.js)
      *   allReplyOptions: Array of strings user selects from in UI
-     *   botCosmetics: the botConfig property that styles the GUI 
+     *   botSettings: the botConfig property that styles the GUI 
      */
     const newConversation = ({ frames = [], 
                                currentFrame = '',
                                replies = {}, 
-                               botCosmetics = {}
+                               botSettings = {}
                              }) => ({
       // in VO.1 this is fixed to zero since we don't have server side NLU
       // to select the frame using phrasings. When this changes, also change 
@@ -4313,7 +4313,7 @@
       completedRounds: [],
 
       allReplyOptions: clone$1(replies),
-      botCosmetics: botCosmetics
+      botSettings: botSettings
     });
 
 
@@ -4340,8 +4340,12 @@
         stats          // Object: Any stats we want to track on a per-round basis
       });
 
-    // Standardized recording of how conversation ended, optionally populated by
-    // UI clients that want to log this info.
+
+    // Standardized recording of how round ended, optionally populated by
+    // UI clients that want to log this info. Note this is NOT about how the 
+    // conversation ended, just the round. The conversation end cannot be recorded
+    // in the user reply, as it requires a reply to be processed and all the
+    // triggers evaluated before concluding if the conversation is over.
     const ENDINGS = Object.freeze({
       completed: 'completed',         // user gave valid reply
       invalidReply: 'invalidReply',   // user gave invalid reply
@@ -4384,7 +4388,7 @@
       const newConv = newConversation({ frames: bot.frames,
         currentFrame: currentFrame,
         replies: bot.replies,
-        botCosmetics: bot.botCosmetics
+        botSettings: bot.botSettings
       }); 
 
       // persist to sessionStorage and return it
@@ -4612,7 +4616,25 @@
 
         // Persist the conversation
         saveConversation(conversation, localStorageKey);
+
+        // call the global namespace function that publishers may use for logging.
+        if (conversation.botSettings.trackUserReplies) {
+          try {
+            pageSupportBotTracker('replyClick', {
+              ask: round.slot.ask,
+              userReplyValues: round.userReplyValues,
+              userReplyIndexes: round.userReplyIndexes,
+              ending: round.ending }
+            );
+          } catch (e) {
+            console.error(`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
+See the documentation and make sure you've added a function called 
+pageSupportBotTracker() to you global namespace.`);
+          }
+        }
       }
+
+
 
 
       /***************** Trigger Evaluation Functions ************/
@@ -7982,7 +8004,7 @@
     	return child_ctx;
     }
 
-    // (763:0) {:else}
+    // (767:0) {:else}
     function create_else_block(ctx) {
     	let h2;
 
@@ -8003,7 +8025,7 @@
     	};
     }
 
-    // (756:28) 
+    // (760:28) 
     function create_if_block_11(ctx) {
     	let button;
 
@@ -8030,7 +8052,7 @@
     	};
     }
 
-    // (754:38) 
+    // (758:38) 
     function create_if_block_10(ctx) {
     	return {
     		c: noop,
@@ -8042,7 +8064,7 @@
     	};
     }
 
-    // (752:30) 
+    // (756:30) 
     function create_if_block_9(ctx) {
     	let h2;
     	let t0;
@@ -8071,7 +8093,7 @@
     	};
     }
 
-    // (567:0) {#if showBotUI && !showUnfriendlyError}
+    // (571:0) {#if showBotUI && !showUnfriendlyError}
     function create_if_block(ctx) {
     	let div6;
     	let div1;
@@ -8269,7 +8291,7 @@
     	};
     }
 
-    // (598:10) {#if userReplyValues.length > 0}
+    // (602:10) {#if userReplyValues.length > 0}
     function create_if_block_8(ctx) {
     	let div;
     	let p;
@@ -8327,7 +8349,7 @@
     	};
     }
 
-    // (587:6) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+    // (591:6) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
     function create_each_block_2(ctx) {
     	let div;
     	let p;
@@ -8377,7 +8399,7 @@
     	};
     }
 
-    // (729:43) 
+    // (733:43) 
     function create_if_block_7(ctx) {
     	let p;
     	let t0;
@@ -8409,7 +8431,7 @@
     	};
     }
 
-    // (727:63) 
+    // (731:63) 
     function create_if_block_6(ctx) {
     	let p;
 
@@ -8431,7 +8453,7 @@
     	};
     }
 
-    // (698:50) 
+    // (702:50) 
     function create_if_block_5(ctx) {
     	let div;
     	let input;
@@ -8503,7 +8525,7 @@
     	};
     }
 
-    // (696:56) 
+    // (700:56) 
     function create_if_block_4(ctx) {
     	let multiselect;
     	let current;
@@ -8542,7 +8564,7 @@
     	};
     }
 
-    // (663:54) 
+    // (667:54) 
     function create_if_block_3(ctx) {
     	let div1;
     	let div0;
@@ -8639,7 +8661,7 @@
     	};
     }
 
-    // (640:10) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+    // (644:10) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
     function create_if_block_2(ctx) {
     	let div1;
     	let div0;
@@ -8703,7 +8725,7 @@
     	};
     }
 
-    // (673:18) {#each replyOptions as userReplyValue, userReplyIndex}
+    // (677:18) {#each replyOptions as userReplyValue, userReplyIndex}
     function create_each_block_1(ctx) {
     	let option;
     	let t_value = /*userReplyValue*/ ctx[38] + "";
@@ -8730,7 +8752,7 @@
     	};
     }
 
-    // (643:16) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+    // (647:16) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
     function create_each_block(ctx) {
     	let button;
     	let t0_value = /*userReplyValue*/ ctx[38] + "";
@@ -8775,7 +8797,7 @@
     	};
     }
 
-    // (742:4) {#if showRestartButton}
+    // (746:4) {#if showRestartButton}
     function create_if_block_1(ctx) {
     	let hr;
     	let t;
@@ -8881,14 +8903,14 @@
     	};
     }
 
-    function setBotCosmetics(botCosmetics = {}) {
+    function setBotSettings(botSettings = {}) {
     	const el = document.getElementById("botContainer");
-    	el.style.setProperty("--primary-color", botCosmetics.primaryColor);
-    	el.style.setProperty("--secondary-color", botCosmetics.secondaryColor);
-    	el.style.setProperty("--hover-color", botCosmetics.hoverColor);
-    	el.style.setProperty("--container-color", botCosmetics.containerBg);
-    	el.style.setProperty("--container-border-color", botCosmetics.containerBorderBg);
-    	el.style.fontFamily = botCosmetics.customerFont;
+    	el.style.setProperty("--primary-color", botSettings.primaryColor);
+    	el.style.setProperty("--secondary-color", botSettings.secondaryColor);
+    	el.style.setProperty("--hover-color", botSettings.hoverColor);
+    	el.style.setProperty("--container-color", botSettings.containerBg);
+    	el.style.setProperty("--container-border-color", botSettings.containerBorderBg);
+    	el.style.fontFamily = botSettings.customerFont;
     }
 
     /* styleListItemsWithImages() => undefined
@@ -9043,9 +9065,9 @@
     				$$invalidate(10, showBotUI = true);
     				await tick();
 
-    				// setBotCosmetics requires the DOM in place and the conversation
+    				// setBotSettings requires the DOM in place and the conversation
     				// object to set custom color and font properties
-    				setBotCosmetics(conversation.botCosmetics);
+    				setBotSettings(conversation.botSettings);
     			} else if (!waitForStartNewConversation) {
     				// no BotConfig and we are NOT waiting on caller to call
     				// startNewConversation and pass in a BotConfig, so show error in UI. 
@@ -9117,7 +9139,7 @@
      *     try to get botConfig from remote if it doesn't find one in localStorage.
      *     See scenarios at top of this file for what to set to.
      *
-     * Returns conversation object - mostly to enable setBotCosmetics() and
+     * Returns conversation object - mostly to enable setBotSettings() and
      * populates state in browser's localstorage and populates
      * UI variables to display.
      *
@@ -9182,7 +9204,7 @@
     				await tick(); // wait for ui to show in DOM
 
     				// set custom color and font properties in case user changed them in publisher mode
-    				setBotCosmetics(conversation.botCosmetics);
+    				setBotSettings(conversation.botSettings);
     			} else {
     				throw new invalidBotConfig(`startNewConversation() failed to acquire conversation objectfrom initConversation()`);
     			}
@@ -9196,6 +9218,8 @@
     	/* populateConversationUI() => undefined
      * Populates UI variables needed to display a conversation:
      *  completedRounds, replyType, replyOptions
+     * See the newConversation constructor in dialog.js for how completedRounds
+     * is structured.
      */
     	function populateConversationUI() {
     		// empty the input box and error for free text entry in case reused

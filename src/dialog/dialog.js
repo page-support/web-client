@@ -43,12 +43,12 @@ import { slotTypeEnum } from '../state/BotConfig.js';
  * Args:
  *   frames: bot.frames (from newBot constructor in BotConfig.js)
  *   allReplyOptions: Array of strings user selects from in UI
- *   botCosmetics: the botConfig property that styles the GUI 
+ *   botSettings: the botConfig property that styles the GUI 
  */
 const newConversation = ({ frames = [], 
                            currentFrame = '',
                            replies = {}, 
-                           botCosmetics = {}
+                           botSettings = {}
                          }) => ({
   // in VO.1 this is fixed to zero since we don't have server side NLU
   // to select the frame using phrasings. When this changes, also change 
@@ -71,7 +71,7 @@ const newConversation = ({ frames = [],
   completedRounds: [],
 
   allReplyOptions: clone(replies),
-  botCosmetics: botCosmetics
+  botSettings: botSettings
 });
 
 
@@ -98,8 +98,12 @@ const newRound = ({ slot = {},
     stats          // Object: Any stats we want to track on a per-round basis
   });
 
-// Standardized recording of how conversation ended, optionally populated by
-// UI clients that want to log this info.
+
+// Standardized recording of how round ended, optionally populated by
+// UI clients that want to log this info. Note this is NOT about how the 
+// conversation ended, just the round. The conversation end cannot be recorded
+// in the user reply, as it requires a reply to be processed and all the
+// triggers evaluated before concluding if the conversation is over.
 const ENDINGS = Object.freeze({
   completed: 'completed',         // user gave valid reply
   invalidReply: 'invalidReply',   // user gave invalid reply
@@ -142,7 +146,7 @@ function initConversation(bot, currentFrame, localStorageKey) {
   const newConv = newConversation({ frames: bot.frames,
     currentFrame: currentFrame,
     replies: bot.replies,
-    botCosmetics: bot.botCosmetics
+    botSettings: bot.botSettings
   }); 
 
   // persist to sessionStorage and return it
@@ -370,7 +374,25 @@ function returnFirstTrueSlotTrigger(slotCandidates, repliesAsProps) {
 
     // Persist the conversation
     saveConversation(conversation, localStorageKey)
+
+    // call the global namespace function that publishers may use for logging.
+    if (conversation.botSettings.trackUserReplies) {
+      try {
+        pageSupportBotTracker('replyClick', {
+          ask: round.slot.ask,
+          userReplyValues: round.userReplyValues,
+          userReplyIndexes: round.userReplyIndexes,
+          ending: round.ending }
+        );
+      } catch (e) {
+        console.error(`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
+See the documentation and make sure you've added a function called 
+pageSupportBotTracker() to you global namespace.`);
+      }
+    }
   }
+
+
 
 
   /***************** Trigger Evaluation Functions ************/

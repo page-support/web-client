@@ -86,6 +86,7 @@ botConfig. For example:
   import { slotTypeEnum } from "../state/BotConfig.js";
   import MultiSelect from "./MultiSelect.svelte";
   import { afterUpdate, tick } from "svelte";
+import { CallTracker } from "assert";
 
   /************ variables used in the UI/DOM **********/
 
@@ -211,9 +212,9 @@ botConfig. For example:
         let conversation = loadConversation(botConfig);
         showBotUI = true;
         await tick();
-        // setBotCosmetics requires the DOM in place and the conversation
+        // setBotSettings requires the DOM in place and the conversation
         // object to set custom color and font properties
-        setBotCosmetics(conversation.botCosmetics);
+        setBotSettings(conversation.botSettings);
       } else if (!waitForStartNewConversation) {
         // no BotConfig and we are NOT waiting on caller to call
         // startNewConversation and pass in a BotConfig, so show error in UI. 
@@ -295,7 +296,7 @@ botConfig. For example:
    *     try to get botConfig from remote if it doesn't find one in localStorage.
    *     See scenarios at top of this file for what to set to.
    *
-   * Returns conversation object - mostly to enable setBotCosmetics() and
+   * Returns conversation object - mostly to enable setBotSettings() and
    * populates state in browser's localstorage and populates
    * UI variables to display.
    *
@@ -332,8 +333,9 @@ botConfig. For example:
     styleListItemsWithImages(); // apply non-default style to rendered markdown
   });
 
-  /* setBotCosmetics() => undefined
-     Arg: REQUIRED instance of botCosmetics object.
+
+  /* setBotSettings() => undefined
+     Arg: REQUIRED instance of botSettings object.
      Sets client bot look and feel based on BotConfig. To test in storybook
      select the story, click restart, then refresh the browser.  fontFamily
      is applied to the whole botContainer element and all its children including
@@ -341,17 +343,17 @@ botConfig. For example:
      place, ie. in an onMount async function. This is done in a js function 
      to enable botConfig file to set cosmetics.
    */
-  function setBotCosmetics(botCosmetics = {}) {
+  function setBotSettings(botSettings = {}) {
     const el = document.getElementById("botContainer");
-    el.style.setProperty("--primary-color", botCosmetics.primaryColor);
-    el.style.setProperty("--secondary-color", botCosmetics.secondaryColor);
-    el.style.setProperty("--hover-color", botCosmetics.hoverColor);
-    el.style.setProperty("--container-color", botCosmetics.containerBg);
+    el.style.setProperty("--primary-color", botSettings.primaryColor);
+    el.style.setProperty("--secondary-color", botSettings.secondaryColor);
+    el.style.setProperty("--hover-color", botSettings.hoverColor);
+    el.style.setProperty("--container-color", botSettings.containerBg);
     el.style.setProperty(
       "--container-border-color",
-      botCosmetics.containerBorderBg
+      botSettings.containerBorderBg
     );
-    el.style.fontFamily = botCosmetics.customerFont;
+    el.style.fontFamily = botSettings.customerFont;
   }
 
   /* styleListItemsWithImages() => undefined
@@ -418,7 +420,7 @@ botConfig. For example:
         showBotUI = true;
         await tick(); // wait for ui to show in DOM
         // set custom color and font properties in case user changed them in publisher mode
-        setBotCosmetics(conversation.botCosmetics);
+        setBotSettings(conversation.botSettings);
       } else {
         throw new invalidBotConfig(`startNewConversation() failed to acquire conversation objectfrom initConversation()`);
       }
@@ -434,6 +436,8 @@ botConfig. For example:
   /* populateConversationUI() => undefined
    * Populates UI variables needed to display a conversation:
    *  completedRounds, replyType, replyOptions
+   * See the newConversation constructor in dialog.js for how completedRounds
+   * is structured.
    */
   function populateConversationUI() {
     // empty the input box and error for free text entry in case reused
@@ -863,7 +867,7 @@ botConfig. For example:
     @apply list-decimal list-inside;
   }
 
-  /* Used in conjunction with botCosmetics const in BotConfig.js to set bot look
+  /* Used in conjunction with botSettings const in BotConfig.js to set bot look
    * from Javascript at runtime. Note that these CSS custom property names must be 
    * the same ones used in tailwind.config.js extend section. (not the values 
    * those must be changed in BotConfig.js)

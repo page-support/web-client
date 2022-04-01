@@ -61,7 +61,7 @@ import { BUILT_IN_REPLIES } from './BuiltInReplies.js';
  * as a constructor.
  */ 
 export const newBot = () => ({
-  version: '1.0.0',
+  version: '2.0.0',
   publisherId: '',
   publisherName: '',
   publisherPhone: '',
@@ -96,12 +96,8 @@ export const newBot = () => ({
   clients: Object.create(null),
   
   
-  botCosmetics: botCosmetics,
+  botSettings: botSettings,
 
-  // Application state for a given publisher
-  appState: {
-      currentFrameSlotIndex: 0,
-  } 
 });
 
 
@@ -335,7 +331,7 @@ export const replyLens = lensProp('replies');
  * optionally call a server side build and load a new set of html and css
  * from a server side build.
  */
-export const botCosmetics = {
+export const botSettings = {
   // Leave these properties as is if client should use the specified defaults.
   // defaults. Note have to ALSO change Bot.svelte's style section to change 
   // the defaults. Publisher can optionally set other values and have them
@@ -363,6 +359,8 @@ export const botCosmetics = {
   
   /* border of the whole bot container */
   containerBorderBg: '#f0f9ff', 
+
+  trackUserReplies: false,
   
   /********* FONTS ********/
 
@@ -373,7 +371,7 @@ export const botCosmetics = {
   customerFont: "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
 };
 
-export const botCosmeticsLens = (name) => lensPath(['botCosmetics', name]);
+export const botSettingsLens = (name) => lensPath(['botSettings', name]);
 
 
 
