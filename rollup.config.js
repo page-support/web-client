@@ -10,9 +10,8 @@ import {terser} from 'rollup-plugin-terser';
 import pkg from './package.json';
 import sveltePreprocess from "svelte-preprocess";
 import replace from '@rollup/plugin-replace';
+
 const fs = require('fs'), path = require('path');
-
-
 const production = !process.env.ROLLUP_WATCH;
 
 
@@ -62,9 +61,13 @@ export default {
     // some cases you'll need additional configuration -
     // consult the documentation for details:
     // https://github.com/rollup/plugins/tree/master/packages/commonjs
+    // preferBuiltins:false is to prevent error
+    // `Plugin node-resolve: preferring built-in module 'assert' over local alternative`
+    // and a bunch of errors around missing shims.
     resolve({
       browser: true,
       dedupe: ['svelte'],
+      preferBuiltins: false
     }),
     
     commonjs({
@@ -76,7 +79,8 @@ export default {
 
     replace({
       __botConfigVersion__: readPackageVersion(),
-    })
+      preventAssignment: true
+    }),
 
     // NOTE: no serve or livereload options here because Bot is 
     // only a component - embed in storybook or rails or publisher
