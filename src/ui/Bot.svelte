@@ -86,7 +86,6 @@ botConfig. For example:
   import { slotTypeEnum } from "../state/BotConfig.js";
   import MultiSelect from "./MultiSelect.svelte";
   import { afterUpdate, tick } from "svelte";
-import { CallTracker } from "assert";
 
   /************ variables used in the UI/DOM **********/
 
