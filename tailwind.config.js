@@ -11,18 +11,7 @@ module.exports = {
             require('@tailwindcss/aspect-ratio')
           ],
   darkMode: 'class',
-  purge: { // will purge when NODE_ENV set to `production`
-    content: ["./src/**/*.svelte", "./src/**/*.html"],
-    options: {
-      whitelist: [/svelte-/],
-      /* eslint-disable no-unused-vars */
-      defaultExtractor: (content) =>
-        [...content.matchAll(/(?:class:)*([\w\d-/:%.]+)/gm)].map(
-          ([_match, group, ..._rest]) => group
-        ),
-    },
-    enabled: isProduction // disable purge in dev
-  },
+  content: ["./src/**/*.svelte", "./src/**/*.html"],
   theme: {
     /*  The theme section is used to REPLACE the existing Tailwind
         colors and fonts.  To ADD TO the existing ones, see the theme

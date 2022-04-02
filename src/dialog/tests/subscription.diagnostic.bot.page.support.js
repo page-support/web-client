@@ -126,7 +126,7 @@ export default {
     "hoverColor": "#0ea5e9",
     "containerBg": "#F9FAFB",
     "containerBorderBg": "#f0f9ff",
-    "trackUserReplies": true,
+    "trackUserReplies": false,
     "customerFont": "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji'"
   },
   "appState": {
