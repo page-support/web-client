@@ -394,11 +394,11 @@
     const REMOTE_CONFIG_URL = 'TBD';
 
     // botConfigVersion version will be used to compare against the botConfig file version if
-    // 2.0.0 is NOT set to a version string. Edit botConfigVersion
+    // 2.0.1 is NOT set to a version string. Edit botConfigVersion
     // if you are using your own build pipeline and need to adapt to a higher
     // version botConfig. 
     // See versionCompatible() function and the README for details.
-    const pkgBotVersion = '2.0.0';
+    const pkgBotVersion = '2.0.1';
     const botVersion = '1.0.0';
 
 
@@ -497,7 +497,7 @@
      * caller or parent should use try block
      */
     function versionCompatible(version) {
-      // if deployer of Bot is using `npm run build` 2.0.0 will
+      // if deployer of Bot is using `npm run build` 2.0.1 will
       // be set by rollup. If its not set, the constant botConfigVersion
       // at the top of this file will be used. If your build pipeline doesn't use 
       // npm run build, e.g. if you are building Bot into your own website with
