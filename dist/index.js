@@ -393,18 +393,6 @@
     // TODO: URL where botConfig JSON is stored - remote fetch not yet supported.
     const REMOTE_CONFIG_URL = 'TBD';
 
-    // Having the bot source code check the botConfig version ensures that version
-    // incompatibilities are surfaced clearly, particularly in cases where the 
-    // botConfig file is being loaded dynamically from elsewhere.
-    // The 2.0.2 string is set by rollup to the package.json version
-    // at build time, hence pkgBotVersion will be set to the package.json bot version.
-    // If you are using your own build pipeline and want your bot code to check the
-    // botConfig version replace the RHS value with your version string, or add
-    // something like https://www.npmjs.com/package/@rollup/plugin-replace
-    // to your build pipeline to set it. 
-    // See versionCompatible() function and the README for details.
-    const pkgBotVersion = '2.0.2';
-
 
 
 
@@ -489,10 +477,10 @@
 
 
     /* versionCompatible(version: String) => boolean
-     * If 2.0.2 is set by rollup, returns
+     * If 2.0.3 is set by rollup, returns
      * true if the version argument is compatible with the bot client code,
      * raises error otherwise. 
-     * If 2.0.2 is not set, then also returns true, i.e. there
+     * If 2.0.3 is not set, then also returns true, i.e. there
      * is no version check. So if the version of rollup.config.js in this app
      * is not being used, and version checking is desired, set it manually at 
      * the top of this file, or implement another way to set it when building.
@@ -509,18 +497,13 @@
      */
     function versionCompatible(version) { 
       // if deployer of Bot is using `npm run build` (i.e. its using the   
-      // already-built files in dist/) 2.0.2 will
+      // already-built files in dist/) 2.0.3 will
       // be set by rollup. If its not set, the constant botConfigVersion
       // at the top of this file will be used. If your build pipeline doesn't use 
       // npm run build, e.g. if you are building Bot into your own website with
       // your own build pipeline, ensure that botConfigVersion is set to the 
       // same major version as the botConfig files you plan to deploy with the bot.
-      {
-        // versions are incompatible
-        throw new invalidBotConfig(
-          `Bot source code version ${pkgBotVersion} doesn't match the version of 
-the bot configuration file the bot read: ${version}.`);
-      }
+      return true;
     }
 
 
