@@ -212,6 +212,12 @@ botConfig. For example:
 
       if (botConfig) {
         try {
+
+          /* TODO: move this block to BotConversationUI and instead call 
+          showBotUI() which will create and attach BotConversationUI, which 
+          will then call loadConversation() itself unless waitforSTartNewConversation
+          is true 
+          */
           let conversation = loadConversation(botConfig);
           await tick();
           //setBotSettings(conversation.botSettings);
@@ -308,105 +314,17 @@ botConfig. For example:
     return null;
   }
 
-  /* loadConversation() => conversation object || null
-   * Called when the website Bot is embedded in does a page load.
-   * Populates view variables like completedRounds and accepted replies so the UI
-   * can present the next slot. Uses existing conversation state. May start a
-   * new conversation or resume existing one if none is in progress.
-   *
-   * Args:
-   *   - botConfig: REQUIRED: instance of botConfig
-   *   - getConfigFromRemote: REQUIRED: bool. if true, initConversation call here will
-   *     try to get botConfig from remote if it doesn't find one in localStorage.
-   *     See scenarios at top of this file for what to set to.
-   *
-   * Returns conversation object - mostly to enable setBotSettings() and
-   * populates state in browser's localstorage and populates
-   * UI variables to display.
-   *
-   */
-  function loadConversation(botConfig) {
-    if (!botConfig) {
-      console.log(
-        `Error calling loadConversation(): botConfig arg must be supplied`
-      );
-    } else {
-      // get conversation from sessionStorage or if not present, by
-      // creating a new conversation. Preserves existing conversation
-      // across page loads.
-      let conversation =
-        getConversation(localStorageKey) ||
-        initConversation(botConfig, currentFrame, localStorageKey);
-      if (conversation) {
-        frameIntroduction = conversation.introduction;
-        localeString = conversation.localeString;
-        populateConversationUI(); // set view variables
-        return conversation;
-      } else {
-        console.log("failed to load conversation in loadConversation()");
-        return null;
-      }
-    }
-  }
-
-  // After any DOM update (usually triggered by a variable here being updated
-  // for instance the bot renders a say, run the listed functions.
-  afterUpdate(() => {
-    styleListItemsWithImages(); // apply non-default style to rendered markdown
-  });
+  
 
 
-  /* setBotSettings() => undefined
-     Arg: REQUIRED instance of botSettings object.
-     Sets client bot look and feel based on BotConfig. To test in storybook
-     select the story, click restart, then refresh the browser.  fontFamily
-     is applied to the whole botContainer element and all its children including
-     buttons, bot and user generated text. Must be called after the DOM is in 
-     place, ie. in an onMount async function. This is done in a js function 
-     to enable botConfig file to set cosmetics.
-   */
-  function setBotSettings(botSettings = {}) {
-    const el = document.getElementById("botContainer");
-    el.style.setProperty("--primary-color", botSettings.primaryColor);
-    el.style.setProperty("--secondary-color", botSettings.secondaryColor);
-    el.style.setProperty("--hover-color", botSettings.hoverColor);
-    el.style.setProperty("--container-color", botSettings.containerBg);
-    el.style.setProperty(
-      "--container-border-color",
-      botSettings.containerBorderBg
-    );
-    el.style.fontFamily = botSettings.customerFont;
-  }
 
-  /* styleListItemsWithImages() => undefined
-   * Remove styles (and therefore the bullets) from list items coming from
-   * the marked render.
-   * Enables users to render pretty images at top of each list item
-   * and display them like product or topic cards.
-   * Do this if the first element in the li is an
-   * img, otherwise do nothing. Only select li elements that are children
-   * of ul elements - we don't want to do this to <ol> diagnostic items -
-   * seeing the numbering is useful as subsequent steps in history may refer back
-   * to earlier ones. Must run after DOM updates. No return value.
-   */
-  function styleListItemsWithImages() {
-    // Apply mt-12 to all the li elements if they have an image at top
-    let selector = `#conversationHistory ul > li img:first-child, 
-                    #currentAsk ul > li img:first-child`;
-    const imgs = document.querySelectorAll(selector);
 
-    if (imgs.length > 0) {
-      // If images appear as first children in a list item,
-      // add margin-top and remove bullets
-      imgs.forEach((img) => (img.style.marginTop = "3rem"));
-      // Apply list-none up chain from img => li => ul elements that contain
-      // those images
-      imgs.forEach((img) => {
-        img.parentElement.parentElement.style.listStyleType = "none";
-      });
-    }
-  }
+  
 
+
+  
+
+  
   /* startNewConversation(bot) => undefined
    * Start a new conversation from the beginning, stopping one if its running.
    * Populates all the needed view variables to display a conversation.
@@ -428,6 +346,12 @@ botConfig. For example:
         localStorageKey,
         waitForStartNewConversation
       );
+
+      /* TODO: from here to the end is redundant with what loadConversation()
+       * in BotConversationUI does, with the exception of the getConversation()
+       * call that loadConversation has. Pass in a arg to loadConversation() to
+       * prevent that for the startNewConversation case
+       */
 
       if (!botConf) {
         throw new invalidBotConfig(`startNewConversation() failed to acquire a botConfig from localStorage and remote.`);

@@ -7,16 +7,61 @@
  */
 
 // props passed in from Bot.svelte which owns loading conversation data
-export let frameIntroduction;
-export let completedRounds;
-export let replyType;
-export let replyOptions;
+export let botConfig;
 export let showUnfriendlyError;
 export let waitForStartNewConversation;
 export let showLoadingWaitUI;
+export let UIError;
 
 import { getNextSlot } from "../dialog/dialog.js"; // Returns a Round object
 import { saveReply } from "../dialog/dialog.js";
+
+
+
+/*********** Lifecycle functions ************/
+
+/* loadConversation() => conversation object || null
+  * Called when the website Bot is embedded in does a page load.
+  * Populates view variables like completedRounds and accepted replies so the UI
+  * can present the next slot. Uses existing conversation state. May start a
+  * new conversation or resume existing one if none is in progress.
+  *
+  * Args:
+  *   - botConfig: REQUIRED: instance of botConfig
+  *   - getConfigFromRemote: REQUIRED: bool. if true, initConversation call here will
+  *     try to get botConfig from remote if it doesn't find one in localStorage.
+  *     See scenarios at top of this file for what to set to.
+  *
+  * Returns conversation object - mostly to enable setBotSettings() and
+  * populates state in browser's localstorage and populates
+  * UI variables to display.
+  *
+  */
+  function loadConversation(botConfig) {
+    if (!botConfig) {
+      console.log(
+        `Error calling loadConversation(): botConfig arg must be supplied`
+      );
+    } else {
+      // get conversation from sessionStorage or if not present, by
+      // creating a new conversation. Preserves existing conversation
+      // across page loads.
+      let conversation =
+        getConversation(localStorageKey) ||
+        initConversation(botConfig, currentFrame, localStorageKey);
+      if (conversation) {
+        frameIntroduction = conversation.introduction;
+        localeString = conversation.localeString;
+        populateConversationUI(); // set view variables
+        return conversation;
+      } else {
+        console.log("failed to load conversation in loadConversation()");
+        return null;
+      }
+    }
+  }
+
+
 
 /* populateConversationUI() => undefined
    * Populates UI variables needed to display a conversation:
@@ -32,6 +77,70 @@ import { saveReply } from "../dialog/dialog.js";
     ({ completedRounds, replyType, replyOptions } =
       getNextSlot(localStorageKey));
   }
+
+
+  // After any DOM update (usually triggered by a variable here being updated
+  // for instance the bot renders a say, run the listed functions.
+  afterUpdate(() => {
+    styleListItemsWithImages(); // apply non-default style to rendered markdown
+  });
+
+
+  /* styleListItemsWithImages() => undefined
+   * Remove styles (and therefore the bullets) from list items coming from
+   * the marked render.
+   * Enables users to render pretty images at top of each list item
+   * and display them like product or topic cards.
+   * Do this if the first element in the li is an
+   * img, otherwise do nothing. Only select li elements that are children
+   * of ul elements - we don't want to do this to <ol> diagnostic items -
+   * seeing the numbering is useful as subsequent steps in history may refer back
+   * to earlier ones. Must run after DOM updates. No return value.
+   */
+   function styleListItemsWithImages() {
+    // Apply mt-12 to all the li elements if they have an image at top
+    let selector = `#conversationHistory ul > li img:first-child, 
+                    #currentAsk ul > li img:first-child`;
+    const imgs = document.querySelectorAll(selector);
+
+    if (imgs.length > 0) {
+      // If images appear as first children in a list item,
+      // add margin-top and remove bullets
+      imgs.forEach((img) => (img.style.marginTop = "3rem"));
+      // Apply list-none up chain from img => li => ul elements that contain
+      // those images
+      imgs.forEach((img) => {
+        img.parentElement.parentElement.style.listStyleType = "none";
+      });
+    }
+  }
+
+  
+
+
+/* setBotSettings() => undefined
+     Arg: REQUIRED instance of botSettings object.
+     Sets client bot look and feel based on BotConfig. To test in storybook
+     select the story, click restart, then refresh the browser.  fontFamily
+     is applied to the whole botContainer element and all its children including
+     buttons, bot and user generated text. Must be called after the DOM is in 
+     place, ie. in an onMount async function. This is done in a js function 
+     to enable botConfig file to set cosmetics.
+   */
+   function setBotSettings(botSettings = {}) {
+    const el = document.getElementById("botContainer");
+    el.style.setProperty("--primary-color", botSettings.primaryColor);
+    el.style.setProperty("--secondary-color", botSettings.secondaryColor);
+    el.style.setProperty("--hover-color", botSettings.hoverColor);
+    el.style.setProperty("--container-color", botSettings.containerBg);
+    el.style.setProperty(
+      "--container-border-color",
+      botSettings.containerBorderBg
+    );
+    el.style.fontFamily = botSettings.customerFont;
+  }
+
+
 
   /***************** DOM EVENT handlers ***************/
 
@@ -355,129 +464,129 @@ import { saveReply } from "../dialog/dialog.js";
   </div>
 
 
-  <style global lang="postcss">
-    /* Note Tailwind preprocessor works by including only styles that are 
-     * present in *.svelte files in the build. For that to work at all, in
-     * both Tailwind jit dev mode, and in production, this style tag must
-     * include all the Tailwind class names that the user might use. If you 
-     * need first transform static content like md, see 
-     * https://tailwindcss.com/docs/optimizing-for-production#transforming-content
-     * Note this doesn't work for user-entered markup in Publisher because
-     * the build system doesn't know what that is at build time. But this
-     * is useful if documentation is in md, because the md is available at
-     * build time. 
+<style global lang="postcss">
+  /* Note Tailwind preprocessor works by including only styles that are 
+   * present in *.svelte files in the build. For that to work at all, in
+   * both Tailwind jit dev mode, and in production, this style tag must
+   * include all the Tailwind class names that the user might use. If you 
+   * need first transform static content like md, see 
+   * https://tailwindcss.com/docs/optimizing-for-production#transforming-content
+   * Note this doesn't work for user-entered markup in Publisher because
+   * the build system doesn't know what that is at build time. But this
+   * is useful if documentation is in md, because the md is available at
+   * build time. 
+   */
+
+  /* Also it is important to avoid dynamically creating class strings in your 
+   * templates with string concatenation,otherwise PurgeCSS won’t know to 
+   * preserve those classes. 
+   * See https://tailwindcss.com/docs/optimizing-for-production#writing-purgeable-html
+   * this is OK because it preserves the full class name
+   *   <div class="{{  error  ?  'text-red-600'  :  'text-green-600'  }}"></div>
+   */
+
+  /* The @import pulls in Bot's css into Bot component scope from a css file that
+   * is made accessible by a bundler or a <link>. The string after import 
+   * references the location of the css file relative to this file. Typically 
+   * that is in your node_modules installed via npm if you are using a bundler. 
+   * Putting Bot's css file in the containing site's global scope
+   * like in publisher can mess with containing site's css if the containing site
+   * is using tailwindcss. When Bot is being bundled with your site's other code
+   * by a bundler like webpack or rollup
+   * no additional <link> is needed because the bundler will 
+   * compile the css file with the rest of your css. When you NOT using a bundler 
+   * and instead adding Bot as an iife file, a <link> is needed in the head of 
+   * your page to make this css file accessible to Bot. 
+   */ 
+  
+  @import "../../dist/page-support-bot-bundle.css"; 
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+
+  /* Anchor tags */
+  #conversationHistory a,
+  #currentRound a {
+    color: #0e5890;
+    /* text-decoration: underline; */
+  }
+
+  /* make introduction have less of a top margin since its the first thing 
+   * the extra div before the id makes it more specific so wins over the below
+   * my-* */
+  div#frameIntroduction h1 {
+    @apply mt-0.5;
+  }
+
+  div#frameIntroduction h2 {
+    @apply mt-0.5;
+  }
+
+  div#frameIntroduction h3 {
+    @apply mt-0.5;
+  }
+
+  #conversationHistory img,
+  #currentAsk img {
+    @apply object-cover rounded-lg shadow-lg my-2;
+    max-width: 100%;
+    height: auto;
+  }
+
+  #conversationHistory h3,
+  #currentAsk h3 {
+    @apply text-lg leading-6 font-medium my-1;
+  }
+
+  #conversationHistory h2,
+  #currentAsk h2 {
+    @apply text-xl leading-8 font-semibold my-2;
+  }
+
+  #conversationHistory h1,
+  #currentAsk h1 {
+    @apply text-2xl leading-10 font-bold my-2;
+  }
+
+  /* Need to set ul, ol classes to 'list-none' when the image occurs 
+   * first in a list item. To get rid of it select the element, then 
+   * add the class and mt-12.  Do this after the DOM updates, which means
+   * after each call getNextTextReply
+   */
+  #conversationHistory ul,
+  #currentAsk ul {
+    @apply list-disc list-inside;
+  }
+
+  #conversationHistory ol,
+  #currentAsk ol {
+    @apply list-decimal list-inside;
+  }
+
+  /* Used in conjunction with botSettings const in BotConfig.js to set bot look
+   * from Javascript at runtime. Note that these CSS custom property names must be 
+   * the same ones used in tailwind.config.js extend section. (not the values 
+   * those must be changed in BotConfig.js)
+   * TODO: the defaults here are duplicated with what's in BotConfig - how to DRY? 
+   */
+  /* in element class notation, refer as bg-bot-primary-color, text-*, 
+    * border-* or whatever shorthand Tailwind uses to indicate where
+    * the class is applied.
+    */
+  #botContainer {
+    /* these defaults are from the colors.sky palette in tailwindcss
+     * https://tailwindcss.com/docs/customizing-colors#color-palette-reference
      */
-  
-    /* Also it is important to avoid dynamically creating class strings in your 
-     * templates with string concatenation,otherwise PurgeCSS won’t know to 
-     * preserve those classes. 
-     * See https://tailwindcss.com/docs/optimizing-for-production#writing-purgeable-html
-     * this is OK because it preserves the full class name
-     *   <div class="{{  error  ?  'text-red-600'  :  'text-green-600'  }}"></div>
-     */
-  
-    /* The @import pulls in Bot's css into Bot component scope from a css file that
-     * is made accessible by a bundler or a <link>. The string after import 
-     * references the location of the css file relative to this file. Typically 
-     * that is in your node_modules installed via npm if you are using a bundler. 
-     * Putting Bot's css file in the containing site's global scope
-     * like in publisher can mess with containing site's css if the containing site
-     * is using tailwindcss. When Bot is being bundled with your site's other code
-     * by a bundler like webpack or rollup
-     * no additional <link> is needed because the bundler will 
-     * compile the css file with the rest of your css. When you NOT using a bundler 
-     * and instead adding Bot as an iife file, a <link> is needed in the head of 
-     * your page to make this css file accessible to Bot. 
-     */ 
-    
-    @import "../../dist/page-support-bot-bundle.css"; 
-    @tailwind base;
-    @tailwind components;
-    @tailwind utilities;
-  
-    /* Anchor tags */
-    #conversationHistory a,
-    #currentRound a {
-      color: #0e5890;
-      /* text-decoration: underline; */
-    }
-  
-    /* make introduction have less of a top margin since its the first thing 
-     * the extra div before the id makes it more specific so wins over the below
-     * my-* */
-    div#frameIntroduction h1 {
-      @apply mt-0.5;
-    }
-  
-    div#frameIntroduction h2 {
-      @apply mt-0.5;
-    }
-  
-    div#frameIntroduction h3 {
-      @apply mt-0.5;
-    }
-  
-    #conversationHistory img,
-    #currentAsk img {
-      @apply object-cover rounded-lg shadow-lg my-2;
-      max-width: 100%;
-      height: auto;
-    }
-  
-    #conversationHistory h3,
-    #currentAsk h3 {
-      @apply text-lg leading-6 font-medium my-1;
-    }
-  
-    #conversationHistory h2,
-    #currentAsk h2 {
-      @apply text-xl leading-8 font-semibold my-2;
-    }
-  
-    #conversationHistory h1,
-    #currentAsk h1 {
-      @apply text-2xl leading-10 font-bold my-2;
-    }
-  
-    /* Need to set ul, ol classes to 'list-none' when the image occurs 
-     * first in a list item. To get rid of it select the element, then 
-     * add the class and mt-12.  Do this after the DOM updates, which means
-     * after each call getNextTextReply
-     */
-    #conversationHistory ul,
-    #currentAsk ul {
-      @apply list-disc list-inside;
-    }
-  
-    #conversationHistory ol,
-    #currentAsk ol {
-      @apply list-decimal list-inside;
-    }
-  
-    /* Used in conjunction with botSettings const in BotConfig.js to set bot look
-     * from Javascript at runtime. Note that these CSS custom property names must be 
-     * the same ones used in tailwind.config.js extend section. (not the values 
-     * those must be changed in BotConfig.js)
-     * TODO: the defaults here are duplicated with what's in BotConfig - how to DRY? 
-     */
-    /* in element class notation, refer as bg-bot-primary-color, text-*, 
-      * border-* or whatever shorthand Tailwind uses to indicate where
-      * the class is applied.
-      */
-    #botContainer {
-      /* these defaults are from the colors.sky palette in tailwindcss
-       * https://tailwindcss.com/docs/customizing-colors#color-palette-reference
-       */
-  
-      /* used in actionable button backgrounds */
-      --primary-color: #38bdf8;
-      /* used for conversation history buttons and other non-actionable elements */
-      --secondary-color: #e0f2fe;
-      /* used in action button hover and focus:ring - a shade darker than primary */
-      --hover-color: #0ea5e9;
-      /* background of the whole bot container */
-      --container-color: #f9fafb;
-      /* border of the whole bot container */
-      --container-border-color: #f0f9ff;
-    }
-  </style>
+
+    /* used in actionable button backgrounds */
+    --primary-color: #38bdf8;
+    /* used for conversation history buttons and other non-actionable elements */
+    --secondary-color: #e0f2fe;
+    /* used in action button hover and focus:ring - a shade darker than primary */
+    --hover-color: #0ea5e9;
+    /* background of the whole bot container */
+    --container-color: #f9fafb;
+    /* border of the whole bot container */
+    --container-border-color: #f0f9ff;
+  }
+</style>
