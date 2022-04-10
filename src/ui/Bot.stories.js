@@ -16,7 +16,7 @@ export const diagnosticConversationOne = () => ({
 
   // Pass props and bindings into component
 
-  props: { propBotConfig: diagnostic_test,
+  props: { botConfig: diagnostic_test,
            localStorageKey: 'diagConvOne'
   }
   //on: { click: action('clicked') },
@@ -28,7 +28,7 @@ export const multiSelectConversation = () => ({
 
   // Pass props and bindings into component
 
-  props: { propBotConfig: multi_select_test,
+  props: { botConfig: multi_select_test,
            localStorageKey: 'multiSelect' }
    
 });
@@ -38,8 +38,8 @@ export const imagesTest = () => ({
 
   // Pass props and bindings into component
 
-  props: { propBotConfig: images_test,
-           propGetConfigFromRemote: false,
+  props: { botConfig: images_test,
+           getConfigFromRemote: false,
            localStorageKey: 'imagesTest' }
    
 })
