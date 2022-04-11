@@ -148,6 +148,7 @@ function versionCompatible(version) {
     return true;
   } else {
     // versions are incompatible
+    console.error('incompatible version of botConfig');
     throw new invalidBotConfig(
       `Bot source code version ${pkgBotVersion} doesn't match the version of 
 the bot configuration file the bot read: ${version}.`);
