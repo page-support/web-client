@@ -17,10 +17,11 @@ Note that this component will show an unfriendly error if called without a valid
 botConfig. The calling site is responsible for passing in props including the 
 botConfig. For example:
  
-    <Bot propBotConfig={guideBotConfig} 
+    <Bot botConfig={guideBotConfig} 
          bind:this={guideBotBinding} 
-         propGetConfigFromRemote={false}
-         localStorageKey={'guideBot'} /> 
+         getConfigFromRemote={false}
+         localStorageKey={'guideBot'} 
+         waitForStartNewConversation={false} /> 
 
 -->
 <script>
@@ -84,7 +85,10 @@ botConfig. For example:
   /********* Lifecycle Event handling *************/
 
 
-  //init();
+  onMount(() => {
+    init();
+  });
+  
 
 
   // Create Bot UI component, attach to #botShadowRoot, bind the component
@@ -100,7 +104,7 @@ botConfig. For example:
       props: {
         waitForStartNewConversation: waitForStartNewConversation,
         localStorageKey: localStorageKey,
-        getConfigFromRemote: propGetConfigFromRemote,
+        getConfigFromRemote: getConfigFromRemote,
         botConfig: botConfig
       }
     });
