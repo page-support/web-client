@@ -1,4 +1,4 @@
-import Bot from './Bot.svelte';
+import Bot from '../ui/Bot.svelte';
 import { action } from '@storybook/addon-actions';
 
 export default {
