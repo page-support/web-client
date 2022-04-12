@@ -118,7 +118,10 @@ botConfig. For example:
   // pass-thru that just calls the function of the same name in 
   // BotConversationUI.svelte.
   function startNewConversation() {
-    botConversationUI.startNewConversation();
+    // pass in botConfig, which might be null. the second argument sets 
+    // startNewConversation in BotConversationUI to true, triggering a new
+    // conversation even if an old one is on progress.
+    botConversationUI.init(botConfig, true);
   }
 
   

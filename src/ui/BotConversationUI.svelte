@@ -98,35 +98,42 @@
   // If set to false, could be a bug, botConfig version issue, or some
   // other botConfig loading issue.
   let showUnfriendlyError = false;
+  // toggles conversation UI on, used to prevent errors when UI shows before 
+  // data for the conversation is loaded.
+  let showConversation = false;
   
   
   
   /*********** Lifecycle functions ************/
   
-  init();
+  // init loads data needed to render UI.  If we are waiting on parent site to
+  // trigger bot, then don't load data and just render the UI needed for errors.
+  if (!waitForStartNewConversation) init();
   
   
-  /* Initialize the UI and its variables. 
-   * Assumes a valid botConfig was passed in via a prop, OR
-   * waitForStartNewConversation is true in which case its a 
-   * no-op since the caller doesn't want to render anything until
-   * startNewConversation() is called.
+  /* Initialize the UI and its variables. First it loads botConfig, then 
+   * the conversation object, then the UI.
+   * Called in two scenarios:
+   *   1. when this component is loaded into DOM, in which case it tries to 
+   *      acquire a botConfig from localStorage or remote.
+   *   2. by startNewConversation() which is triggered by the parent site. In
+   *      this case, a botConfig MAY be passed in - if so use it, if not try
+   *      to acquire from localStorage or remote as in 1.
+   * 
    */
-  async function init() {
-  
-    if (!waitForStartNewConversation) {
+  async function init(botConfig = null, startNewConversation = false) {
       try {
-        // no BotConfig and we are NOT waiting on caller to call
-        // startNewConversation and pass in a BotConfig, so show error in UI. 
-        // This generally shouldn't happen if no bugs and caller passed in all
-        // the required props.
-        const botConfig = loadBotConfig(
+        if (!botConfig) {
+          botConfig = loadBotConfig(
                           botConfig,
                           getConfigFromRemote,
                           localStorageKey,
                           waitForStartNewConversation
                         );
-        let conversation = loadConversation(botConfig);
+        }
+        
+        let conversation = loadConversation(botConfig, startNewConversation);
+        showConversation = true;
         await tick();
         setBotSettings(conversation.botSettings);
       } catch (e) {
@@ -134,17 +141,10 @@
         UIError = e;
         showUnfriendlyError = true;
       } 
-    } else {
-      // Do nothing since waiting for caller to use startNewConversation()
-    }
   }
   
+
   /*************** data loading functions **************/
-  
-  
-  
-  
-  
   
   
   
@@ -191,55 +191,9 @@
     // if we get here, all routes to getting botConfig have failed 
     throw new invalidBotConfig(`loadBotConfig() failed to acquire a botConfig from localStorage and remote`);
   }
+
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  /* startNewConversation(bot) => undefined
-    * Start a new conversation from the beginning, stopping one if its running.
-    * Loads a new botConfig since it might be passed in from the caller of this
-    * function. Assumes BotConversationUI.svelte is already loaded to shadowDOM
-    * since that is needed to display errors. If nothing 
-    *
-    * Args: newBot : OPTIONAL is an instance of the botConfig object.
-    *
-    * Behavior WRT botConfig sourcing:
-    *   1. use newBot if argument present.
-    *   2. use propBotConfig if newBot === null (passed in from prop)
-    *   3. try to get botConfig from localStorage
-    *   4. try fetching botConfig from remote
-    *   5. raise error if all that fails.
-    */
-  function startNewConversation(newBot = null) {
-    try {
-      let botConf = loadBotConfig(
-        newBot || propBotConfig,
-        getConfigFromRemote,
-        localStorageKey,
-        waitForStartNewConversation
-      );
-  
-      /* TODO: from here to the end is redundant with what loadConversation()
-        * in BotConversationUI does, with the exception of the getConversation()
-        * call that loadConversation has. Pass in a arg to loadConversation() to
-        * prevent that for the startNewConversation case
-        */
-  
-      if (!botConf) {
-        throw new invalidBotConfig(`startNewConversation() failed to acquire a botConfig from localStorage and remote.`);
-      }
-      showBotUI();
-  
-  }
-  
+
   
   /* loadConversation() => conversation object || null
     * Called when the website Bot is embedded in does a page load.
@@ -258,14 +212,14 @@
     * UI variables to display.
     *
     */
-    function loadConversation(botConfig, newConversation = false) {
+    function loadConversation(botConfig, startNewConversation = false) {
       if (!botConfig) throw new invalidBotConfig(`init() in BotConversationUI.svelte 
     didn't find a valid botConfig passed in as a prop`);
      
-      // get conversation from sessionStorage or if not present, by
-      // creating a new conversation. Preserves existing conversation
-      // across page loads.
-      if (newConversation) {
+      // getConversation() gets in progress conversation from sessionStorage or 
+      // if not present, create a new conversation that starts from the beginning 
+      // with initConversation. Preserves existing conversation across page loads.
+      if (startNewConversation) {
         let conversation = initConversation(botConfig, currentFrame, localStorageKey);
       } else {
         let conversation = (getConversation(localStorageKey) ||
@@ -489,8 +443,8 @@
    
   <div id="botShadowChild">
   
-  
-    {#if !showUnfriendlyError }
+    {#if showConversation && !showUnfriendlyError }
+
       <!-- the container div will expand to the width given it, but elements 
           like selectors are sized to fixed width appropriate to small 
           mobile screens. Set max width in a div containing this one if needed, e.g.
@@ -669,9 +623,6 @@
     {:else if showUnfriendlyError}
       <h2 class="text-gray text-lg">Bot failed to load: {UIError}</h2>
   
-    {:else if waitForStartNewConversation}
-      <!-- show nothing: used when waiting for calling site to use startNewConversation() -->
-  
     {:else if showLoadingWaitUI}
       <button type="button" class="bg-primary-600" disabled>
         <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
@@ -680,11 +631,9 @@
         Loading
       </button>
   
-    {:else}
-      <h2>Unknown error</h2>
     {/if}
     
-    </div>
+    </div> <!-- botShadowChild closing div -->
   
   
   
