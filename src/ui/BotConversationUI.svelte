@@ -85,6 +85,7 @@
   let completedRounds; // Object: populates conversation history in view
   let replyOptions; // Array of Strings: replies the user can select from
   let replyType; // String: one of slotTypeEnum in BotConfig.js
+  let showReplyOptions; // boolean: true diplays the replyOptionsModal, false hides 
   let selectedReplyIndex; // Integer: index of reply user selected in single select
   let userText = ""; // String: free text user input
   let inputError = ""; // String: error displayed for free text user input
@@ -96,6 +97,10 @@
   // If set to false, could be a bug, botConfig version issue, or some
   // other botConfig loading issue.
   let showUnfriendlyError = false;
+  // Show loading indicator when in process of fetching
+  // botConfig from remote.
+  let showLoadingWaitUI = false;
+
   // toggles conversation UI on, used to prevent errors when UI shows before 
   // data for the conversation is loaded.
   let showConversation = false;
@@ -114,7 +119,7 @@
   // a startFrameId property to tell us where to start. currentFrame is
   // set at botConfig load time in loadBotConfig();
   let currentFrame = null;  
-  
+
   
   /*********** Lifecycle functions ************/
   
@@ -150,6 +155,9 @@
         
         let conversation = loadConversation(botConfig, startNewConversation);
         showConversation = true;
+        console.log(conversation); // looks good
+        
+        console.log(showConversation && !showUnfriendlyError); //true
         await tick();
         setBotSettings(conversation.botSettings);
       } catch (e) {
@@ -195,10 +203,13 @@
     } else {
       // show loading UI only if caller is ok with UI showing
       // get BotConfig from localStorage or remote if getConfigFromRemote is true
+      // show loading UI only if caller is ok with UI showing
+      if (!waitForStartNewConversation) showLoadingWaitUI = true;
       botConfig = getBotConfig(false, 
                                getConfigFromRemote, 
                                localStorageKey, 
                                waitForStartNewConversation);
+      showLoadingWaitUI = false;
       if (botConfig) { 
         currentFrame = botConfig.startFrameId;
         return botConfig;
@@ -324,6 +335,7 @@
      */
      function setBotSettings(botSettings = {}) {
       const el = document.getElementById("botContainer");
+      if (!el) throw Error(`setBotSettings() didn't find #botContainer in UI`);
       el.style.setProperty("--primary-color", botSettings.primaryColor);
       el.style.setProperty("--secondary-color", botSettings.secondaryColor);
       el.style.setProperty("--hover-color", botSettings.hoverColor);
