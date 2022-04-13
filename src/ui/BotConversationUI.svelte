@@ -55,7 +55,7 @@
   export let localStorageKey;
   
   // See https://svelte.dev/tutorial/bind-this for usage examples
-  export { startNewConversation };
+  export { init };
   
   /******** module scoped variables *******/
   
@@ -71,7 +71,6 @@
   import { ENDINGS } from "../dialog/dialog.js";
   import { BUILT_IN_REPLIES } from "../state/BuiltInReplies.js";
   import { dropLast } from "ramda";
-  import { onMount } from 'svelte';
   import { marked } from 'marked'; 
   import { slotTypeEnum } from "../state/BotConfig.js";
   import MultiSelect from "./MultiSelect.svelte";
@@ -85,7 +84,6 @@
   let localeString; // String: unicode locale string used for language specific sorting
   let completedRounds; // Object: populates conversation history in view
   let replyOptions; // Array of Strings: replies the user can select from
-  let showReplyOptions; // boolean: true diplays the replyOptionsModal, false hides
   let replyType; // String: one of slotTypeEnum in BotConfig.js
   let selectedReplyIndex; // Integer: index of reply user selected in single select
   let userText = ""; // String: free text user input
@@ -102,6 +100,20 @@
   // data for the conversation is loaded.
   let showConversation = false;
   
+
+  /********* Constants ******************/
+
+
+  // Currently the page.support publisher is able to create botConfigs
+  // for multiple frames. However this Bot.svelte component does 
+  // not support multiple frames - it lacks a way to for the user to 
+  // transition from one frame to another. So at UI load time we 
+  // need to set currentFrame to the first frame in botConfig so that 
+  // startNewConversation() knows which frame to execute. Frames
+  // are keyed with a UUID assigned by the publisher, so botConfig has
+  // a startFrameId property to tell us where to start. currentFrame is
+  // set at botConfig load time in loadBotConfig();
+  let currentFrame = null;  
   
   
   /*********** Lifecycle functions ************/
@@ -121,15 +133,19 @@
    *      to acquire from localStorage or remote as in 1.
    * 
    */
-  async function init(botConfig = null, startNewConversation = false) {
+  async function init(newBotConfig = null, startNewConversation = false) {
       try {
-        if (!botConfig) {
+        // if botConfig not passed in from Bot.startNewConversation calling
+        // this function, then load it from the prop or remote.  throw if fails.
+        if (!newBotConfig) {
           botConfig = loadBotConfig(
                           botConfig,
                           getConfigFromRemote,
                           localStorageKey,
                           waitForStartNewConversation
                         );
+        } else {
+          botConfig = newBotConfig;
         }
         
         let conversation = loadConversation(botConfig, startNewConversation);
@@ -174,15 +190,15 @@
   ) {
     if (botConfig && versionCompatible(botConfig.version)) {
       saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
-      currentFrame = botConfig.startFrameId;
+      currentFrame = botConfig.startFrameId; // unused until multi frame support
       return botConfig;
     } else {
       // show loading UI only if caller is ok with UI showing
       // get BotConfig from localStorage or remote if getConfigFromRemote is true
       botConfig = getBotConfig(false, 
-                                getConfigFromRemote, 
-                                localStorageKey, 
-                                waitForStartNewConversation);
+                               getConfigFromRemote, 
+                               localStorageKey, 
+                               waitForStartNewConversation);
       if (botConfig) { 
         currentFrame = botConfig.startFrameId;
         return botConfig;
@@ -203,9 +219,12 @@
     *
     * Args:
     *   - botConfig: REQUIRED: instance of botConfig
-    *   - getConfigFromRemote: REQUIRED: bool. if true, initConversation call here will
-    *     try to get botConfig from remote if it doesn't find one in localStorage.
-    *     See scenarios at top of this file for what to set to.
+    *   - startNewConversation: OPTIONAL: bool. if true, initConversation() 
+    *     will be run and new conversation started. If false, will try to continue
+    *     existing conversation unless there is no on going conversation, in 
+    *     which case will start a new one. Setting to true enables Bot.svelte
+    *     to offer the startNewConversation prop to let the parent site control
+    *     when conversations are started.
     *
     * Returns conversation object - mostly to enable setBotSettings() and
     * populates state in browser's localstorage and populates
@@ -216,13 +235,14 @@
       if (!botConfig) throw new invalidBotConfig(`init() in BotConversationUI.svelte 
     didn't find a valid botConfig passed in as a prop`);
      
+      let conversation;
       // getConversation() gets in progress conversation from sessionStorage or 
       // if not present, create a new conversation that starts from the beginning 
       // with initConversation. Preserves existing conversation across page loads.
       if (startNewConversation) {
-        let conversation = initConversation(botConfig, currentFrame, localStorageKey);
+        conversation = initConversation(botConfig, currentFrame, localStorageKey);
       } else {
-        let conversation = (getConversation(localStorageKey) ||
+        conversation = (getConversation(localStorageKey) ||
                             initConversation(botConfig, currentFrame, localStorageKey));
       }
   
@@ -233,7 +253,6 @@
         return conversation;
       } else {
         throw new Error("failed to load conversation in loadConversation()");
-        return null;
       }
     }
   
