@@ -45,8 +45,8 @@ botConfig. For example:
 
   // Prop: OPTIONAL: bool : For now this must be false, because remote retrieval of
   // botConfig is not supported. In a future release you can set this to true,
-  // provide a URL 
-  export let getConfigFromRemote = false; 
+  // provide a URL
+  export let getConfigFromRemote = false;
 
   // Prop: OPTIONAL: String : The URL from which to retrieve the botConfig, currently unused.
   // When this is supported, getBotConfig() needs to pass this prop into
@@ -66,13 +66,10 @@ botConfig. For example:
   // loading code to get a binding to the component to call startNewConversation.
   export let waitForStartNewConversation = false;
 
-
   /*************** Imports ******************/
 
-  
-  
-  import { onMount } from 'svelte';
-  import BotConversationUI from './BotConversationUI.svelte';
+  import { onMount } from "svelte";
+  import BotConversationUI from "./BotConversationUI.svelte";
 
   /************ variables used in the UI/DOM **********/
 
@@ -81,22 +78,18 @@ botConfig. For example:
 
   /********* Constants ******************/
 
-
   /********* Lifecycle Event handling *************/
-
 
   onMount(() => {
     init();
   });
-  
-
 
   // Create Bot UI component, attach to #botShadowRoot, bind the component
   // reference to startNewConversation
   function init() {
     // create shadowRoot
     const parent = document.getElementById("botShadowParent");
-    const shadow = parent.attachShadow({mode: 'open'});
+    const shadow = parent.attachShadow({ mode: "open" });
 
     // instantiate component and attach to shadowDOM
     botConversationUI = new BotConversationUI({
@@ -105,32 +98,21 @@ botConfig. For example:
         waitForStartNewConversation: waitForStartNewConversation,
         localStorageKey: localStorageKey,
         getConfigFromRemote: getConfigFromRemote,
-        botConfig: botConfig
-      }
+        botConfig: botConfig,
+      },
     });
-    
   }
-
 
   /***************** UI functions ***************/
 
-
-  // pass-thru that just calls the function of the same name in 
+  // pass-thru that just calls the function of the same name in
   // BotConversationUI.svelte.
   function startNewConversation() {
-    // pass in botConfig, which might be null. the second argument sets 
+    // pass in botConfig, which might be null. the second argument sets
     // startNewConversation in BotConversationUI to true, triggering a new
     // conversation even if an old one is on progress.
     botConversationUI.init(botConfig, true);
   }
-
-  
 </script>
-<h1>HI</h1>
-<div id="botShadowParent" ></div>
 
-
-
-
-
-
+<div id="botShadowParent" />
