@@ -133,8 +133,6 @@
 
   // load data for UI and UI itself.
   init(botConfig, false);
-  console.log('right after init');
-  
 
 
 
@@ -663,7 +661,7 @@
 
 
 <!-- botShadowChild closing div -->
-<style global lang="postcss">
+<style global type="text/css" lang="postcss">
   /* Note Tailwind preprocessor works by including only styles that are 
      * present in *.svelte files in the build. For that to work at all, in
      * both Tailwind jit dev mode, and in production, this style tag must
@@ -698,7 +696,15 @@
      * your page to make this css file accessible to Bot. 
      */
 
-  @import "../../dist/page-support-bot-bundle.css";
+  /* @import "../../dist/page-support-bot-bundle.css"; */
+  /* in storybook, the request is relative to node_modules/.cache/storybook/public
+     TODO: figure out how to get build to drop it in there on update... OR
+     need to put in a path
+  */
+ /* this works when page-.. is in public folder
+ -> unclear why @import "../../../../../page-support-bot-bundle.css"; */
+  /* this import in storybook context is loaded relative to bot/node_modules/.cache/storybook/public/static/media/src/stories/assets */
+  @import 'page-support-bot-bundle.css';
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
