@@ -461,7 +461,9 @@
   }
 </script>
 
-<div id="botShadowTree">
+<!-- display:none ensures that page-support-bot-bundle.css is loaded
+     before we show the component. prevents FOUC -->
+<div id="botShadowTree" style="display:none;" >
 
   {#if UIError && showUnfriendlyError }
     <p style="color: red">Bot failed to load: {UIError}</p>
@@ -517,9 +519,10 @@
 
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    class="inline-block ml-3 h-5 w-5 text-gray-400 hover:text-gray-800"
+                    class="inline-block ml-3  text-gray-400 hover:text-gray-800"
                     viewBox="0 0 20 20"
                     fill="currentColor"
+                    style="height: 18px; width: 18px;"
                   >
                     <path
                       d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"
@@ -698,7 +701,9 @@
 
   /* for import to work in storybook, .storybook/main.js must have 
      `staticDirs: ['../dist']` */
-  @import 'page-support-bot-bundle.css';
+
+  
+  @import './page-support-bot-bundle.css'; 
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -788,4 +793,9 @@
     /* border of the whole bot container */
     --container-border-color: #f0f9ff;
   }
+
+  /* undoes the display:none at the beginning of this style tag so that
+   * the page-support-bot-bundle can be applied before this component is 
+   * shown */
+  #botShadowTree { display: block !important;}
 </style>

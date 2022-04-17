@@ -230,11 +230,12 @@
     >
       <!-- Heroicon name: solid/selector -->
       <svg
-        class="h-5 w-5 text-gray-400"
+        class="text-gray-400"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
+        style="height: 20px; width: 20px;"
       >
         <path
           fill-rule="evenodd"
