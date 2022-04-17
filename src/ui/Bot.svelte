@@ -88,7 +88,7 @@ botConfig. For example:
   // reference to startNewConversation
   function init() {
     // create shadowRoot
-    const parent = document.getElementById("botShadowParent");
+    const parent = document.getElementById("botShadowHost");
     const shadow = parent.attachShadow({ mode: "open" });
 
     // instantiate component and attach to shadowDOM
@@ -115,4 +115,4 @@ botConfig. For example:
   }
 </script>
 
-<div id="botShadowParent" />
+<div id="botShadowHost" />

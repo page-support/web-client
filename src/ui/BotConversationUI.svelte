@@ -325,10 +325,10 @@
        to enable botConfig file to set cosmetics.
      */
   function setBotSettings(botSettings = {}) {
-    const parent = document.getElementById("botShadowParent");
+    const parent = document.getElementById("botShadowHost");
     // shadowRoot only accessible via parent element.
-    const el = parent.shadowRoot.getElementById("botShadowChild");
-    if (!el) throw Error(`setBotSettings() didn't find #botShadowChild in UI`);
+    const el = parent.shadowRoot.getElementById("botShadowTree");
+    if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
     el.style.setProperty("--primary-color", botSettings.primaryColor);
     el.style.setProperty("--secondary-color", botSettings.secondaryColor);
     el.style.setProperty("--hover-color", botSettings.hoverColor);
@@ -461,7 +461,7 @@
   }
 </script>
 
-<div id="botShadowChild">
+<div id="botShadowTree">
 
   {#if UIError && showUnfriendlyError }
     <p style="color: red">Bot failed to load: {UIError}</p>
@@ -660,7 +660,7 @@
 </div>
 
 
-<!-- botShadowChild closing div -->
+<!-- botShadowTree closing div -->
 <style global type="text/css" lang="postcss">
   /* Note Tailwind preprocessor works by including only styles that are 
      * present in *.svelte files in the build. For that to work at all, in
@@ -696,14 +696,8 @@
      * your page to make this css file accessible to Bot. 
      */
 
-  /* @import "../../dist/page-support-bot-bundle.css"; */
-  /* in storybook, the request is relative to node_modules/.cache/storybook/public
-     TODO: figure out how to get build to drop it in there on update... OR
-     need to put in a path
-  */
- /* this works when page-.. is in public folder
- -> unclear why @import "../../../../../page-support-bot-bundle.css"; */
-  /* this import in storybook context is loaded relative to bot/node_modules/.cache/storybook/public/static/media/src/stories/assets */
+  /* for import to work in storybook, .storybook/main.js must have 
+     `staticDirs: ['../dist']` */
   @import 'page-support-bot-bundle.css';
   @tailwind base;
   @tailwind components;
@@ -717,8 +711,8 @@
   }
 
   /* make introduction have less of a top margin since its the first thing 
-     * the extra div before the id makes it more specific so wins over the below
-     * my-* */
+   * the extra div before the id makes it more specific so wins over the below
+   * my-* */
   div#frameIntroduction h1 {
     @apply mt-0.5;
   }
