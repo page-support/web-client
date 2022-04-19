@@ -465,7 +465,7 @@
 
 <!-- display:none ensures that page-support-bot-bundle.css is loaded
      before we show the component. prevents FOUC -->
-<div id="botShadowTree" style="display:none;" >
+<div id="botShadowTree"  >
 
   {#if UIError && showUnfriendlyError }
     <p style="color: red">Bot failed to load: {UIError}</p>
@@ -687,27 +687,6 @@
      *   <div class="{{  error  ?  'text-red-600'  :  'text-green-600'  }}"></div>
      */
 
-  /* The @import pulls in Bot's css into Bot component scope from a css file that
-     * is made accessible by a bundler or a <link>. The string after import 
-     * references the location of the css file relative to this file. Typically 
-     * that is in your node_modules installed via npm if you are using a bundler. 
-     * Putting Bot's css file in the containing site's global scope
-     * like in publisher can mess with containing site's css if the containing site
-     * is using tailwindcss. When Bot is being bundled with your site's other code
-     * by a bundler like webpack or rollup
-     * no additional <link> is needed because the bundler will 
-     * compile the css file with the rest of your css. When you NOT using a bundler 
-     * and instead adding Bot as an iife file, a <link> is needed in the head of 
-     * your page to make this css file accessible to Bot. 
-     */
-
-  /* for import to work in storybook, .storybook/main.js must have 
-     `staticDirs: ['../dist']` */
-
-
-  /*@import './page-support-bot-bundle.css';*/ 
-
-
   @tailwind base;
   @tailwind components;
   @tailwind utilities;
@@ -798,8 +777,5 @@
     --container-border-color: #f0f9ff;
   }
 
-  /* undoes the display:none at the beginning of this style tag so that
-   * the page-support-bot-bundle can be applied before this component is 
-   * shown */
-  #botShadowTree { display: block !important;}
+
 </style>
