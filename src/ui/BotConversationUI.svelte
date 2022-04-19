@@ -461,6 +461,8 @@
   }
 </script>
 
+
+
 <!-- display:none ensures that page-support-bot-bundle.css is loaded
      before we show the component. prevents FOUC -->
 <div id="botShadowTree" style="display:none;" >
@@ -702,8 +704,10 @@
   /* for import to work in storybook, .storybook/main.js must have 
      `staticDirs: ['../dist']` */
 
-  
-  @import './page-support-bot-bundle.css'; 
+
+  /*@import './page-support-bot-bundle.css';*/ 
+
+
   @tailwind base;
   @tailwind components;
   @tailwind utilities;

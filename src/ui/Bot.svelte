@@ -78,6 +78,9 @@ botConfig. For example:
 
   /********* Constants ******************/
 
+  // file is in /dist, path relative to built index.*.* files
+  const CSS_FILE = './page-support-bot-bundle.css';
+
   /********* Lifecycle Event handling *************/
 
   onMount(() => {
@@ -91,9 +94,31 @@ botConfig. For example:
     const parent = document.getElementById("botShadowHost");
     const shadow = parent.attachShadow({ mode: "open" });
 
-    // instantiate component and attach to shadowDOM
+    // add link element that loads css to shadowDOM Tree.
+    loadCSS(shadow);
+  }
+
+
+  // load CSS and attach to el
+  function loadCSS(el) {
+    const link = document.createElement('link');
+
+    link.rel  = 'stylesheet';
+    link.type = 'text/css';
+    link.href = CSS_FILE;
+
+    el.appendChild(link);
+
+    // attach BotConversationUI component when stylesheet loaded
+    link.onload = attachNewBotUI(el);
+  }
+
+  
+  // instantiate component and attach to shadowDOM Tree after css loaded
+  function attachNewBotUI(target) {
+    // instantiate component and attach to shadowDOM Tree after css loaded
     botConversationUI = new BotConversationUI({
-      target: shadow,
+      target: target,
       props: {
         waitForStartNewConversation: waitForStartNewConversation,
         localStorageKey: localStorageKey,
@@ -102,6 +127,8 @@ botConfig. For example:
       },
     });
   }
+
+  
 
   /***************** UI functions ***************/
 

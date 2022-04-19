@@ -96,8 +96,7 @@ import Bot from "page-support-bot";
 import botConfig from "/your-path/to/page.support.botconfig.js"
 ```
 
-Bot imports the stylesheet it needs from the node_modules directory it was 
-installed into: `dist/page-support-bot-bundle.css`. That css file is imported via an @import command in the <style> section of BotConversationUI.svelte. Your bundler must compile that file along with the rest of your site's css into one file so no <link> to that file is needed.
+Bot imports the stylesheet it needs from the node_modules directory it was installed into: `dist/page-support-bot-bundle.css`. That css file is imported via an @import command in the <style> section of BotConversationUI.svelte. Your bundler must compile that file along with the rest of your site's css into one file so no <link> to that file is needed.
 
 Next add the Bot component to your page's HTML
 
