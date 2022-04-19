@@ -116,7 +116,6 @@ botConfig. For example:
   
   // instantiate component and attach to shadowDOM Tree after css loaded
   function attachNewBotUI(target) {
-    // instantiate component and attach to shadowDOM Tree after css loaded
     botConversationUI = new BotConversationUI({
       target: target,
       props: {
