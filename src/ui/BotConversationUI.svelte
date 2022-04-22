@@ -487,7 +487,7 @@
           or wider, and the w-auto will have the bordered chatbot fill the space
           and the mx-auto will center it -->
     <div
-      id="botContainer"
+      id="pageBotContainer"
       class="container mx-auto border 
           bg-container-color rounded p-2 sm:p-6 w-auto max-w-xl"
     >
@@ -611,6 +611,7 @@
               </div>
             {:else if replyType === slotTypeEnum.multiple}
               <MultiSelect on:message={multiReplySubmit} {replyOptions} />
+            
             {:else if replyType === "freeTextEntry"}
               <!-- unused now, keep for free text entry sent to backend such as
                     getting user's address or a search field -->
@@ -760,7 +761,7 @@
       * border-* or whatever shorthand Tailwind uses to indicate where
       * the class is applied.
       */
-  #botContainer {
+  #pageBotContainer {
     /* these defaults are from the colors.sky palette in tailwindcss
        * https://tailwindcss.com/docs/customizing-colors#color-palette-reference
        */

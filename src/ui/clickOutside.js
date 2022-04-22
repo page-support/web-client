@@ -16,11 +16,12 @@ export function clickOutside(node) {
     }
   }
 
-	document.addEventListener('click', handleClick, true);
+  const shadowRt = document.querySelector('#botShadowHost').shadowRoot;
+	shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
   
   return {
     destroy() {
-      document.removeEventListener('click', handleClick, true);
+      shadowRt.getElementById("pageBotContainer").removeEventListener('click', handleClick, true);
     }
 	}
 }

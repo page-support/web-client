@@ -47,7 +47,6 @@
    */
   function select(index) {
     // populate array and trigger reactive display of selected replies
-
     if (!replyObjects[index].selected) {
       // If not previously selected, select it.
 
@@ -61,6 +60,7 @@
     } else {
       remove(index);
     }
+    
   }
 
 
@@ -75,9 +75,6 @@
     // Remove the left border color in the replyObjects lower list
     replyObjects[index].selected = false;
     replyObjects = replyObjects;
-
-    console.log(`removed ${index}`);
-    console.log(selectedReplyIndexes.length);
   }
 
   /* User clicks Save/done button next to single or multi select */
@@ -120,10 +117,10 @@
           pr-4"
         id="listbox-option-0"
         role="option"
+        on:click="{() => select(index)}"
         on:mouseenter={() => (replyObj.highlighted = true)}
         on:mouseleave={() => (replyObj.highlighted = false)}
         class:highlightedOption={replyObj.highlighted === true}
-        on:click={() => select(index)}
       >
         <!-- Selected: "font-semibold", Not Selected: "font-normal" -->
         <span
@@ -197,7 +194,7 @@
           <span
             class="text-gray-600 absolute inset-y-0 left-0 flex items-center 
             pl-1.5"
-            on:click={() => remove(selectedReplyIndex)}
+            on:click="{() => remove(selectedReplyIndex)}"
           >
             <svg
               class="fill-current h-6 w-6 "
