@@ -16,6 +16,7 @@ export function clickOutside(node) {
     }
   }
 
+  // To select el in the shadowRoot must select off the shadowRoot not document
   const shadowRt = document.querySelector('#botShadowHost').shadowRoot;
 	shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
   

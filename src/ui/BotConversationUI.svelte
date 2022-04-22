@@ -301,7 +301,9 @@
     // Apply mt-12 to all the li elements if they have an image at top
     let selector = `#conversationHistory ul > li img:first-child, 
                       #currentAsk ul > li img:first-child`;
-    const imgs = document.querySelectorAll(selector);
+                  
+    const shadowRt = document.querySelector('#botShadowHost').shadowRoot;                 
+    const imgs = shadowRt.querySelectorAll(selector);
 
     if (imgs.length > 0) {
       // If images appear as first children in a list item,
