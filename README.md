@@ -103,13 +103,14 @@ Next add the Bot component to your page's HTML
 ```
 <Bot propBotConfig={botConfig} 
      bind:this={botBinding} 
-     localStorageKey={localStorageKey} 
+     localStorageKey={localStorageKey}
+     cssFileURI={"path/to/the/page-support-bot-bundle.css"} 
 /> 
 ```
 
 Bot supports the following props:
 
-* botConfig is the js object imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
+* botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
 * propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
 * localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.

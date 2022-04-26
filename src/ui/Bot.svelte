@@ -58,6 +58,15 @@ botConfig. For example:
   // Must be unique at the domain level.
   export let localStorageKey;
 
+  // Prop: OPTIONAL: URI where the bot's css file is located. The value is used to
+  // set the href property of a link. This allows the parent site flexibility about
+  // where to put the css file. If not provided, uses the CSS_FILE constant, which
+  // assumes the file is in the same directory as the js executables which will
+  // be true if bot is imported from an npm package - since both js and css are
+  // in the dist folder
+  export let cssFileURI;
+
+
   // Prop: OPTIONAL: Boolean true if this component should display nothing until
   // startNewConversation() is called. This allows <Bot> to be added to the DOM
   // and a binding to <Bot> be avaliable to caller so it can be used. Without
@@ -65,6 +74,9 @@ botConfig. For example:
   // because it lacks a BotConfig, but component has to be rendered for the
   // loading code to get a binding to the component to call startNewConversation.
   export let waitForStartNewConversation = false;
+
+
+ 
 
   /*************** Imports ******************/
 
@@ -78,7 +90,9 @@ botConfig. For example:
 
   /********* Constants ******************/
 
-  // file is in /dist, path relative to built index.*.* files
+  // file is in /dist, path relative to built index.*.* files which works 
+  // if css file is loaded from npm package where the js executables are in 
+  // the dist directory
   const CSS_FILE = './page-support-bot-bundle.css';
 
   /********* Lifecycle Event handling *************/
@@ -99,13 +113,13 @@ botConfig. For example:
   }
 
 
-  // load CSS and attach to el
+  // load CSS and attach to el. 
   function loadCSS(el) {
     const link = document.createElement('link');
 
     link.rel  = 'stylesheet';
     link.type = 'text/css';
-    link.href = CSS_FILE;
+    link.href = (cssFileURI || CSS_FILE);
 
     el.appendChild(link);
 

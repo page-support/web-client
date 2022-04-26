@@ -7456,11 +7456,13 @@ pageSupportBotTracker() to you global namespace.`);
         }
       };
 
-    	document.addEventListener('click', handleClick, true);
+      // To select el in the shadowRoot must select off the shadowRoot not document
+      const shadowRt = document.querySelector('#botShadowHost').shadowRoot;
+    	shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
       
       return {
         destroy() {
-          document.removeEventListener('click', handleClick, true);
+          shadowRt.getElementById("pageBotContainer").removeEventListener('click', handleClick, true);
         }
     	}
     }
@@ -7481,7 +7483,7 @@ pageSupportBotTracker() to you global namespace.`);
     	return child_ctx;
     }
 
-    // (103:2) {#if showOptions}
+    // (100:2) {#if showOptions}
     function create_if_block_3$1(ctx) {
     	let ul;
     	let each_value_1 = /*replyObjects*/ ctx[3];
@@ -7543,7 +7545,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (141:10) {#if replyObj.selected}
+    // (138:10) {#if replyObj.selected}
     function create_if_block_4$1(ctx) {
     	let svg;
     	let path;
@@ -7571,7 +7573,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (114:4) {#each replyObjects as replyObj, index}
+    // (111:4) {#each replyObjects as replyObj, index}
     function create_each_block_1$1(ctx) {
     	let li;
     	let span0;
@@ -7584,16 +7586,16 @@ pageSupportBotTracker() to you global namespace.`);
     	let dispose;
     	let if_block = /*replyObj*/ ctx[17].selected && create_if_block_4$1();
 
+    	function click_handler() {
+    		return /*click_handler*/ ctx[8](/*index*/ ctx[19]);
+    	}
+
     	function mouseenter_handler() {
-    		return /*mouseenter_handler*/ ctx[8](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
+    		return /*mouseenter_handler*/ ctx[9](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
     	}
 
     	function mouseleave_handler() {
-    		return /*mouseleave_handler*/ ctx[9](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
-    	}
-
-    	function click_handler() {
-    		return /*click_handler*/ ctx[10](/*index*/ ctx[19]);
+    		return /*mouseleave_handler*/ ctx[10](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
     	}
 
     	return {
@@ -7625,9 +7627,9 @@ pageSupportBotTracker() to you global namespace.`);
 
     			if (!mounted) {
     				dispose = [
+    					listen(li, "click", click_handler),
     					listen(li, "mouseenter", mouseenter_handler),
-    					listen(li, "mouseleave", mouseleave_handler),
-    					listen(li, "click", click_handler)
+    					listen(li, "mouseleave", mouseleave_handler)
     				];
 
     				mounted = true;
@@ -7669,7 +7671,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (184:6) {#each selectedReplyIndexes as selectedReplyIndex}
+    // (181:6) {#each selectedReplyIndexes as selectedReplyIndex}
     function create_each_block$1(ctx) {
     	let li;
     	let span0;
@@ -7730,7 +7732,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (220:4) {#if selectedReplyIndexes.length === 0}
+    // (217:4) {#if selectedReplyIndexes.length === 0}
     function create_if_block_2$1(ctx) {
     	let div;
 
@@ -7749,14 +7751,14 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (227:4) {#if !showOptions && selectedReplyIndexes.length === 0 }
+    // (224:4) {#if !showOptions && selectedReplyIndexes.length === 0 }
     function create_if_block_1$1(ctx) {
     	let span;
 
     	return {
     		c() {
     			span = element("span");
-    			span.innerHTML = `<svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
+    			span.innerHTML = `<svg class="text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="height: 20px; width: 20px;"><path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
     			attr(span, "class", "absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none");
     		},
     		m(target, anchor) {
@@ -7768,7 +7770,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (251:2) {#if selectedReplyIndexes.length !== 0}
+    // (249:2) {#if selectedReplyIndexes.length !== 0}
     function create_if_block$1(ctx) {
     	let button;
     	let mounted;
@@ -8016,8 +8018,6 @@ pageSupportBotTracker() to you global namespace.`);
     		$$invalidate(3, replyObjects[index].selected = false, replyObjects);
 
     		$$invalidate(3, replyObjects);
-    		console.log(`removed ${index}`);
-    		console.log(selectedReplyIndexes.length);
     	}
 
     	/* User clicks Save/done button next to single or multi select */
@@ -8030,9 +8030,9 @@ pageSupportBotTracker() to you global namespace.`);
     		$$invalidate(2, showOptions = false); // hide the options list
     	}
 
+    	const click_handler = index => select(index);
     	const mouseenter_handler = (replyObj, each_value_1, index) => $$invalidate(3, each_value_1[index].highlighted = true, replyObjects);
     	const mouseleave_handler = (replyObj, each_value_1, index) => $$invalidate(3, each_value_1[index].highlighted = false, replyObjects);
-    	const click_handler = index => select(index);
     	const click_handler_1 = selectedReplyIndex => remove(selectedReplyIndex);
     	const click_handler_2 = () => $$invalidate(2, showOptions = !showOptions);
 
@@ -8050,9 +8050,9 @@ pageSupportBotTracker() to you global namespace.`);
     		remove,
     		submit,
     		handleClickOutside,
+    		click_handler,
     		mouseenter_handler,
     		mouseleave_handler,
-    		click_handler,
     		click_handler_1,
     		click_handler_2
     	];
@@ -8089,7 +8089,7 @@ pageSupportBotTracker() to you global namespace.`);
     	return child_ctx;
     }
 
-    // (659:2) {:else }
+    // (665:2) {:else }
     function create_else_block(ctx) {
     	let p;
 
@@ -8111,7 +8111,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (480:26) 
+    // (484:26) 
     function create_if_block_2(ctx) {
     	let div6;
     	let div1;
@@ -8191,7 +8191,7 @@ pageSupportBotTracker() to you global namespace.`);
     			attr(div4, "id", "currentUserReply");
     			attr(div5, "id", "currentRound");
     			attr(div5, "class", "sm:space-y-5 bg-white border-solid border border-gray-200 rounded-lg p-3");
-    			attr(div6, "id", "botContainer");
+    			attr(div6, "id", "pageBotContainer");
     			attr(div6, "class", "container mx-auto border bg-container-color rounded p-2 sm:p-6 w-auto max-w-xl");
     		},
     		m(target, anchor) {
@@ -8300,7 +8300,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (471:48) 
+    // (475:48) 
     function create_if_block_1(ctx) {
     	let button;
 
@@ -8326,7 +8326,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (468:2) {#if UIError && showUnfriendlyError }
+    // (472:2) {#if UIError && showUnfriendlyError }
     function create_if_block(ctx) {
     	let p;
     	let t0;
@@ -8355,7 +8355,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (511:12) {#if userReplyValues.length > 0}
+    // (515:12) {#if userReplyValues.length > 0}
     function create_if_block_9(ctx) {
     	let div;
     	let p;
@@ -8381,9 +8381,11 @@ pageSupportBotTracker() to you global namespace.`);
     			path = svg_element("path");
     			attr(path, "d", "M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z");
     			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
-    			attr(svg, "class", "inline-block ml-3 h-5 w-5 text-gray-400 hover:text-gray-800");
+    			attr(svg, "class", "inline-block ml-3 text-gray-400 hover:text-gray-800");
     			attr(svg, "viewBox", "0 0 20 20");
     			attr(svg, "fill", "currentColor");
+    			set_style(svg, "height", "18px");
+    			set_style(svg, "width", "18px");
     			attr(p, "class", "mx-4 border-b-2 border-gray-300 text-base inline-block hover:text-gray-800");
     			attr(div, "id", "user-reply-buttons-completed");
     			attr(div, "class", "mt-2");
@@ -8413,7 +8415,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (500:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+    // (504:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
     function create_each_block_2(ctx) {
     	let div;
     	let p;
@@ -8463,7 +8465,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (645:45) 
+    // (651:45) 
     function create_if_block_8(ctx) {
     	let p;
     	let t0;
@@ -8495,7 +8497,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (643:65) 
+    // (649:65) 
     function create_if_block_7(ctx) {
     	let p;
 
@@ -8517,7 +8519,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (611:52) 
+    // (617:52) 
     function create_if_block_6(ctx) {
     	let div;
     	let input;
@@ -8589,7 +8591,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (609:58) 
+    // (614:58) 
     function create_if_block_5(ctx) {
     	let multiselect;
     	let current;
@@ -8628,7 +8630,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (576:56) 
+    // (581:56) 
     function create_if_block_4(ctx) {
     	let div1;
     	let div0;
@@ -8725,7 +8727,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (553:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+    // (558:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
     function create_if_block_3(ctx) {
     	let div1;
     	let div0;
@@ -8789,7 +8791,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (586:20) {#each replyOptions as userReplyValue, userReplyIndex}
+    // (591:20) {#each replyOptions as userReplyValue, userReplyIndex}
     function create_each_block_1(ctx) {
     	let option;
     	let t_value = /*userReplyValue*/ ctx[36] + "";
@@ -8816,7 +8818,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (556:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+    // (561:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
     function create_each_block(ctx) {
     	let button;
     	let t0_value = /*userReplyValue*/ ctx[36] + "";
@@ -8883,7 +8885,7 @@ pageSupportBotTracker() to you global namespace.`);
     		c() {
     			div = element("div");
     			if_block.c();
-    			attr(div, "id", "botShadowChild");
+    			attr(div, "id", "botShadowTree");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -8938,7 +8940,8 @@ pageSupportBotTracker() to you global namespace.`);
     	let selector = `#conversationHistory ul > li img:first-child, 
                       #currentAsk ul > li img:first-child`;
 
-    	const imgs = document.querySelectorAll(selector);
+    	const shadowRt = document.querySelector('#botShadowHost').shadowRoot;
+    	const imgs = shadowRt.querySelectorAll(selector);
 
     	if (imgs.length > 0) {
     		// If images appear as first children in a list item,
@@ -8963,12 +8966,12 @@ pageSupportBotTracker() to you global namespace.`);
          to enable botConfig file to set cosmetics.
        */
     function setBotSettings(botSettings = {}) {
-    	const parent = document.getElementById("botShadowParent");
+    	const parent = document.getElementById("botShadowHost");
 
     	// shadowRoot only accessible via parent element.
-    	const el = parent.shadowRoot.getElementById("botShadowChild");
+    	const el = parent.shadowRoot.getElementById("botShadowTree");
 
-    	if (!el) throw Error(`setBotSettings() didn't find #botShadowChild in UI`);
+    	if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
     	el.style.setProperty("--primary-color", botSettings.primaryColor);
     	el.style.setProperty("--secondary-color", botSettings.secondaryColor);
     	el.style.setProperty("--hover-color", botSettings.hoverColor);
@@ -9032,8 +9035,6 @@ pageSupportBotTracker() to you global namespace.`);
      */
     	// load data for UI and UI itself.
     	init(botConfig, false);
-
-    	console.log('right after init');
 
     	/*************** data loading functions **************/
     	/* init() 
@@ -9372,7 +9373,7 @@ pageSupportBotTracker() to you global namespace.`);
     	return {
     		c() {
     			div = element("div");
-    			attr(div, "id", "botShadowParent");
+    			attr(div, "id", "botShadowHost");
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -9386,6 +9387,8 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
+    const CSS_FILE = './page-support-bot-bundle.css';
+
     function instance($$self, $$props, $$invalidate) {
     	let { botConfig = null } = $$props;
     	let { getConfigFromRemote = false } = $$props;
@@ -9396,7 +9399,6 @@ pageSupportBotTracker() to you global namespace.`);
     	// reference to BotConversationUI.svelte component. set in init()
     	let botConversationUI;
 
-    	/********* Constants ******************/
     	/********* Lifecycle Event handling *************/
     	onMount(() => {
     		init();
@@ -9406,13 +9408,30 @@ pageSupportBotTracker() to you global namespace.`);
     	// reference to startNewConversation
     	function init() {
     		// create shadowRoot
-    		const parent = document.getElementById("botShadowParent");
+    		const parent = document.getElementById("botShadowHost");
 
     		const shadow = parent.attachShadow({ mode: "open" });
 
-    		// instantiate component and attach to shadowDOM
+    		// add link element that loads css to shadowDOM Tree.
+    		loadCSS(shadow);
+    	}
+
+    	// load CSS and attach to el
+    	function loadCSS(el) {
+    		const link = document.createElement('link');
+    		link.rel = 'stylesheet';
+    		link.type = 'text/css';
+    		link.href = CSS_FILE;
+    		el.appendChild(link);
+
+    		// attach BotConversationUI component when stylesheet loaded
+    		link.onload = attachNewBotUI(el);
+    	}
+
+    	// instantiate component and attach to shadowDOM Tree after css loaded
+    	function attachNewBotUI(target) {
     		botConversationUI = new BotConversationUI({
-    				target: shadow,
+    				target,
     				props: {
     					waitForStartNewConversation,
     					localStorageKey,

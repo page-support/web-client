@@ -97,9 +97,9 @@
   let UIError = null; // error show in UI, e.g. if botConfig doesn't load or invalid
   let loadingInProgress = false;
 
-  // UI doesn't use this directly, but not being null signals that UI can be 
+  // UI doesn't use this directly, but not being null signals that UI can be
   // displayed in the if block
-  let conversation = null; 
+  let conversation = null;
 
   /********* Constants ******************/
 
@@ -134,11 +134,9 @@
   // load data for UI and UI itself.
   init(botConfig, false);
 
-
-
   /*************** data loading functions **************/
 
-  /* init() 
+  /* init()
    * load botConfig and then conversation object so UI can be displayed
    */
   async function init(newBotConfig = null, startNewConversation = false) {
@@ -161,7 +159,7 @@
         await tick();
         setBotSettings(conversation.botSettings);
       } else {
-        throw Error(`Failed to load conversation`)
+        throw Error(`Failed to load conversation`);
       }
     } catch (e) {
       console.error(`Error in caught in botConversationUI.svelte init(): ${e}`);
@@ -198,14 +196,14 @@
       currentFrame = botConfig.startFrameId; // unused until multi frame support
       return botConfig;
     } else {
-      loadingInProgress = true;  // shows loading indicator until data loaded.
+      loadingInProgress = true; // shows loading indicator until data loaded.
       botConfig = getBotConfig(
         false,
         getConfigFromRemote,
         localStorageKey,
         waitForStartNewConversation
       );
-      loadingInProgress = false;  // remove loading indicator once data loaded.
+      loadingInProgress = false; // remove loading indicator once data loaded.
       if (botConfig) {
         currentFrame = botConfig.startFrameId;
         return botConfig;
@@ -264,7 +262,6 @@
     }
   }
 
-
   /* populateConversationUI() => undefined
    * Populates UI variables needed to display a conversation:
    *  completedRounds, replyType, replyOptions
@@ -301,8 +298,8 @@
     // Apply mt-12 to all the li elements if they have an image at top
     let selector = `#conversationHistory ul > li img:first-child, 
                       #currentAsk ul > li img:first-child`;
-                  
-    const shadowRt = document.querySelector('#botShadowHost').shadowRoot;                 
+
+    const shadowRt = document.querySelector("#botShadowHost").shadowRoot;
     const imgs = shadowRt.querySelectorAll(selector);
 
     if (imgs.length > 0) {
@@ -343,7 +340,6 @@
   }
 
   /***************** DOM EVENT handlers ***************/
-
 
   /* Handle user clicking button on a single reply ask */
   function singleReplyClick(userReplyStr, userReplyIndex) {
@@ -463,25 +459,29 @@
   }
 </script>
 
-
-
-<!-- display:none ensures that page-support-bot-bundle.css is loaded
-     before we show the component. prevents FOUC -->
-<div id="botShadowTree"  >
-
-  {#if UIError && showUnfriendlyError }
+<div id="botShadowTree">
+  {#if UIError && showUnfriendlyError}
     <p style="color: red">Bot failed to load: {UIError}</p>
-
-  {:else if loadingInProgress && !conversation }
-  <button type="button" class="bg-indigo-500" >
-  <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
-    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
-    <div class="text-indigo-600">Loading...</div>
-  </button>
-  
-  {:else if conversation }
+  {:else if loadingInProgress && !conversation}
+    <button type="button" class="bg-indigo-500">
+      <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+      <div class="text-indigo-600">Loading...</div>
+    </button>
+  {:else if conversation}
     <!-- the container div will expand to the width given it, but elements 
           like selectors are sized to fixed width appropriate to small 
           mobile screens. Set max width in a div containing this one if needed, e.g.
@@ -613,7 +613,6 @@
               </div>
             {:else if replyType === slotTypeEnum.multiple}
               <MultiSelect on:message={multiReplySubmit} {replyOptions} />
-            
             {:else if replyType === "freeTextEntry"}
               <!-- unused now, keep for free text entry sent to backend such as
                     getting user's address or a search field -->
@@ -661,12 +660,10 @@
       </div>
       <!-- end currentRound -->
     </div>
-
-  {:else }
-      <p style="color: red">Unknown condition</p>
-  {/if }
+  {:else}
+    <p style="color: red">Unknown condition</p>
+  {/if}
 </div>
-
 
 <!-- botShadowTree closing div -->
 <style global type="text/css" lang="postcss">
@@ -779,6 +776,4 @@
     /* border of the whole bot container */
     --container-border-color: #f0f9ff;
   }
-
-
 </style>
