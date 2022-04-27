@@ -8083,7 +8083,7 @@ function get_each_context_2(ctx, list, i) {
 	return child_ctx;
 }
 
-// (665:2) {:else }
+// (660:2) {:else}
 function create_else_block(ctx) {
 	let p;
 
@@ -8105,7 +8105,7 @@ function create_else_block(ctx) {
 	};
 }
 
-// (484:26) 
+// (481:25) 
 function create_if_block_2(ctx) {
 	let div6;
 	let div1;
@@ -8294,7 +8294,7 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (475:48) 
+// (462:47) 
 function create_if_block_1(ctx) {
 	let button;
 
@@ -8303,7 +8303,7 @@ function create_if_block_1(ctx) {
 			button = element("button");
 
 			button.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 
-    <div class="text-indigo-600">Loading...</div>`;
+      <div class="text-indigo-600">Loading...</div>`;
 
 			attr(button, "type", "button");
 			attr(button, "class", "bg-indigo-500");
@@ -8320,7 +8320,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (472:2) {#if UIError && showUnfriendlyError }
+// (460:2) {#if UIError && showUnfriendlyError}
 function create_if_block(ctx) {
 	let p;
 	let t0;
@@ -8349,7 +8349,7 @@ function create_if_block(ctx) {
 	};
 }
 
-// (515:12) {#if userReplyValues.length > 0}
+// (512:12) {#if userReplyValues.length > 0}
 function create_if_block_9(ctx) {
 	let div;
 	let p;
@@ -8409,7 +8409,7 @@ function create_if_block_9(ctx) {
 	};
 }
 
-// (504:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+// (501:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
 function create_each_block_2(ctx) {
 	let div;
 	let p;
@@ -8459,7 +8459,7 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (651:45) 
+// (647:45) 
 function create_if_block_8(ctx) {
 	let p;
 	let t0;
@@ -8491,7 +8491,7 @@ function create_if_block_8(ctx) {
 	};
 }
 
-// (649:65) 
+// (645:65) 
 function create_if_block_7(ctx) {
 	let p;
 
@@ -8513,7 +8513,7 @@ function create_if_block_7(ctx) {
 	};
 }
 
-// (617:52) 
+// (613:52) 
 function create_if_block_6(ctx) {
 	let div;
 	let input;
@@ -8585,7 +8585,7 @@ function create_if_block_6(ctx) {
 	};
 }
 
-// (614:58) 
+// (611:58) 
 function create_if_block_5(ctx) {
 	let multiselect;
 	let current;
@@ -8624,7 +8624,7 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (581:56) 
+// (578:56) 
 function create_if_block_4(ctx) {
 	let div1;
 	let div0;
@@ -8721,7 +8721,7 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (558:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+// (555:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
 function create_if_block_3(ctx) {
 	let div1;
 	let div0;
@@ -8785,7 +8785,7 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (591:20) {#each replyOptions as userReplyValue, userReplyIndex}
+// (588:20) {#each replyOptions as userReplyValue, userReplyIndex}
 function create_each_block_1(ctx) {
 	let option;
 	let t_value = /*userReplyValue*/ ctx[36] + "";
@@ -8812,7 +8812,7 @@ function create_each_block_1(ctx) {
 	};
 }
 
-// (561:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+// (558:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
 function create_each_block(ctx) {
 	let button;
 	let t0_value = /*userReplyValue*/ ctx[36] + "";
@@ -8934,7 +8934,7 @@ function styleListItemsWithImages() {
 	let selector = `#conversationHistory ul > li img:first-child, 
                       #currentAsk ul > li img:first-child`;
 
-	const shadowRt = document.querySelector('#botShadowHost').shadowRoot;
+	const shadowRt = document.querySelector("#botShadowHost").shadowRoot;
 	const imgs = shadowRt.querySelectorAll(selector);
 
 	if (imgs.length > 0) {
@@ -8975,7 +8975,7 @@ function setBotSettings(botSettings = {}) {
 }
 
 function instance$1($$self, $$props, $$invalidate) {
-	let { botConfig } = $$props;
+	let { propBotConfig } = $$props;
 	let { waitForStartNewConversation } = $$props;
 	let { getConfigFromRemote = false } = $$props;
 	let { localStorageKey } = $$props;
@@ -8996,7 +8996,7 @@ function instance$1($$self, $$props, $$invalidate) {
 	let UIError = null; // error show in UI, e.g. if botConfig doesn't load or invalid
 	let loadingInProgress = false;
 
-	// UI doesn't use this directly, but not being null signals that UI can be 
+	// UI doesn't use this directly, but not being null signals that UI can be
 	// displayed in the if block
 	let conversation = null;
 
@@ -9005,17 +9005,17 @@ function instance$1($$self, $$props, $$invalidate) {
 	// for multiple frames. However this Bot.svelte component does
 	// not support multiple frames - it lacks a way to for the user to
 	// transition from one frame to another. So at UI load time we
-	// need to set currentFrame to the first frame in botConfig so that
-	// startNewConversation() knows which frame to execute. Frames
+	// need to set currentFrame to the first frame in botConfig so it knows 
+	// which frame to execute. Frames
 	// are keyed with a UUID assigned by the publisher, so botConfig has
 	// a startFrameId property to tell us where to start. currentFrame is
 	// set at botConfig load time in loadBotConfig();
 	let currentFrame = null;
 
 	/*********** Lifecycle functions ************/
-	// init loads data needed to render UI.  If we are waiting on parent site to
+	// init() loads data needed to render UI.  If we are waiting on parent site to
 	// trigger bot, then don't load data and just render the UI needed for errors.
-	if (!waitForStartNewConversation) init();
+	if (!waitForStartNewConversation) init(propBotConfig, false);
 
 	/* Initialize the UI and its variables. First it loads botConfig, then
  * the conversation object, then the UI.
@@ -9027,23 +9027,20 @@ function instance$1($$self, $$props, $$invalidate) {
  *      to acquire from localStorage or remote as in 1.
  *
  */
-	// load data for UI and UI itself.
-	init(botConfig, false);
-
 	/*************** data loading functions **************/
-	/* init() 
+	/* init()
  * load botConfig and then conversation object so UI can be displayed
  */
-	async function init(newBotConfig = null, startNewConversation = false) {
+	async function init(botConfig = null, startNewConversation = false) {
 		// if botConfig not passed in from Bot.startNewConversation calling
 		// this function, then load it from the prop or remote.  throw if fails.
 		try {
-			if (!newBotConfig) {
-				$$invalidate(18, botConfig = await loadBotConfig(botConfig, getConfigFromRemote, localStorageKey, waitForStartNewConversation));
-			} else {
-				$$invalidate(18, botConfig = newBotConfig);
+			if (!botConfig) {
+				// try to get from localstorage or remote
+				botConfig = await loadBotConfig(false, getConfigFromRemote, localStorageKey, waitForStartNewConversation);
 			}
 
+			currentFrame = botConfig.startFrameId; // set frame manually since only one now
 			$$invalidate(11, conversation = loadConversation(botConfig, startNewConversation));
 
 			if (conversation) {
@@ -9079,7 +9076,6 @@ function instance$1($$self, $$props, $$invalidate) {
 	function loadBotConfig(botConfig, getConfigFromRemote, localStorageKey, waitForStartNewConversation) {
 		if (botConfig && versionCompatible(botConfig.version)) {
 			saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
-			currentFrame = botConfig.startFrameId; // unused until multi frame support
 			return botConfig;
 		} else {
 			$$invalidate(10, loadingInProgress = true); // shows loading indicator until data loaded.
@@ -9087,7 +9083,6 @@ function instance$1($$self, $$props, $$invalidate) {
 			$$invalidate(10, loadingInProgress = false); // remove loading indicator once data loaded.
 
 			if (botConfig) {
-				currentFrame = botConfig.startFrameId;
 				return botConfig;
 			}
 		}
@@ -9290,7 +9285,7 @@ function instance$1($$self, $$props, $$invalidate) {
 	const click_handler_3 = () => $$invalidate(4, showReplyOptions = true);
 
 	$$self.$$set = $$props => {
-		if ('botConfig' in $$props) $$invalidate(18, botConfig = $$props.botConfig);
+		if ('propBotConfig' in $$props) $$invalidate(18, propBotConfig = $$props.propBotConfig);
 		if ('waitForStartNewConversation' in $$props) $$invalidate(19, waitForStartNewConversation = $$props.waitForStartNewConversation);
 		if ('getConfigFromRemote' in $$props) $$invalidate(20, getConfigFromRemote = $$props.getConfigFromRemote);
 		if ('localStorageKey' in $$props) $$invalidate(21, localStorageKey = $$props.localStorageKey);
@@ -9316,7 +9311,7 @@ function instance$1($$self, $$props, $$invalidate) {
 		adaptRepliesToText,
 		handleTextInput,
 		enterKeyOnInput,
-		botConfig,
+		propBotConfig,
 		waitForStartNewConversation,
 		getConfigFromRemote,
 		localStorageKey,
@@ -9342,7 +9337,7 @@ class BotConversationUI extends SvelteComponent {
 			create_fragment$1,
 			safe_not_equal,
 			{
-				botConfig: 18,
+				propBotConfig: 18,
 				waitForStartNewConversation: 19,
 				getConfigFromRemote: 20,
 				localStorageKey: 21,
@@ -9387,6 +9382,7 @@ function instance($$self, $$props, $$invalidate) {
 	let { botConfig = null } = $$props;
 	let { getConfigFromRemote = false } = $$props;
 	let { localStorageKey } = $$props;
+	let { cssFileURI } = $$props;
 	let { waitForStartNewConversation = false } = $$props;
 
 	/************ variables used in the UI/DOM **********/
@@ -9410,12 +9406,12 @@ function instance($$self, $$props, $$invalidate) {
 		loadCSS(shadow);
 	}
 
-	// load CSS and attach to el
+	// load CSS and attach to el. 
 	function loadCSS(el) {
 		const link = document.createElement('link');
 		link.rel = 'stylesheet';
 		link.type = 'text/css';
-		link.href = CSS_FILE;
+		link.href = cssFileURI || CSS_FILE;
 		el.appendChild(link);
 
 		// attach BotConversationUI component when stylesheet loaded
@@ -9430,7 +9426,7 @@ function instance($$self, $$props, $$invalidate) {
 					waitForStartNewConversation,
 					localStorageKey,
 					getConfigFromRemote,
-					botConfig
+					propBotConfig: botConfig
 				}
 			});
 	}
@@ -9449,13 +9445,15 @@ function instance($$self, $$props, $$invalidate) {
 		if ('botConfig' in $$props) $$invalidate(0, botConfig = $$props.botConfig);
 		if ('getConfigFromRemote' in $$props) $$invalidate(1, getConfigFromRemote = $$props.getConfigFromRemote);
 		if ('localStorageKey' in $$props) $$invalidate(2, localStorageKey = $$props.localStorageKey);
-		if ('waitForStartNewConversation' in $$props) $$invalidate(3, waitForStartNewConversation = $$props.waitForStartNewConversation);
+		if ('cssFileURI' in $$props) $$invalidate(3, cssFileURI = $$props.cssFileURI);
+		if ('waitForStartNewConversation' in $$props) $$invalidate(4, waitForStartNewConversation = $$props.waitForStartNewConversation);
 	};
 
 	return [
 		botConfig,
 		getConfigFromRemote,
 		localStorageKey,
+		cssFileURI,
 		waitForStartNewConversation,
 		startNewConversation
 	];
@@ -9469,13 +9467,14 @@ class Bot extends SvelteComponent {
 			botConfig: 0,
 			getConfigFromRemote: 1,
 			localStorageKey: 2,
-			waitForStartNewConversation: 3,
-			startNewConversation: 4
+			cssFileURI: 3,
+			waitForStartNewConversation: 4,
+			startNewConversation: 5
 		});
 	}
 
 	get startNewConversation() {
-		return this.$$.ctx[4];
+		return this.$$.ctx[5];
 	}
 }
 

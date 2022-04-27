@@ -16,9 +16,9 @@ export const diagnosticConversationOne = () => ({
   // Pass props and bindings into component
 
   props: { botConfig: diagnostic_test,
-           localStorageKey: 'diagConvOne' 
+           localStorageKey: 'diagConvOne',
+           cssFileURI: './page-support-bot-bundle.css'
   }
-  //on: { click: action('clicked') },
 });
 
 

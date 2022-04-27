@@ -48,7 +48,7 @@
 
   /* props and functions passed in from Bot.svelte. See comments there for background. */
   // these four are passed in from Bot.svelte - see it for explanation.
-  export let botConfig;
+  export let propBotConfig;
   export let waitForStartNewConversation;
   export let getConfigFromRemote = false;
   export let localStorageKey;
@@ -107,18 +107,17 @@
   // for multiple frames. However this Bot.svelte component does
   // not support multiple frames - it lacks a way to for the user to
   // transition from one frame to another. So at UI load time we
-  // need to set currentFrame to the first frame in botConfig so that
-  // startNewConversation() knows which frame to execute. Frames
+  // need to set currentFrame to the first frame in botConfig so it knows 
+  // which frame to execute. Frames
   // are keyed with a UUID assigned by the publisher, so botConfig has
   // a startFrameId property to tell us where to start. currentFrame is
   // set at botConfig load time in loadBotConfig();
   let currentFrame = null;
 
   /*********** Lifecycle functions ************/
-
-  // init loads data needed to render UI.  If we are waiting on parent site to
+  // init() loads data needed to render UI.  If we are waiting on parent site to
   // trigger bot, then don't load data and just render the UI needed for errors.
-  if (!waitForStartNewConversation) init();
+  if (!waitForStartNewConversation) init(propBotConfig, false);
 
   /* Initialize the UI and its variables. First it loads botConfig, then
    * the conversation object, then the UI.
@@ -131,29 +130,28 @@
    *
    */
 
-  // load data for UI and UI itself.
-  init(botConfig, false);
+
 
   /*************** data loading functions **************/
 
   /* init()
    * load botConfig and then conversation object so UI can be displayed
    */
-  async function init(newBotConfig = null, startNewConversation = false) {
+  async function init(botConfig = null, startNewConversation = false) {
     // if botConfig not passed in from Bot.startNewConversation calling
     // this function, then load it from the prop or remote.  throw if fails.
     try {
-      if (!newBotConfig) {
+      if (!botConfig) {
+        // try to get from localstorage or remote
         botConfig = await loadBotConfig(
-          botConfig,
+          false,
           getConfigFromRemote,
           localStorageKey,
           waitForStartNewConversation
         );
-      } else {
-        botConfig = newBotConfig;
       }
-
+      
+      currentFrame = botConfig.startFrameId; // set frame manually since only one now
       conversation = loadConversation(botConfig, startNewConversation);
       if (conversation) {
         await tick();
@@ -193,7 +191,6 @@
   ) {
     if (botConfig && versionCompatible(botConfig.version)) {
       saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
-      currentFrame = botConfig.startFrameId; // unused until multi frame support
       return botConfig;
     } else {
       loadingInProgress = true; // shows loading indicator until data loaded.
@@ -205,7 +202,6 @@
       );
       loadingInProgress = false; // remove loading indicator once data loaded.
       if (botConfig) {
-        currentFrame = botConfig.startFrameId;
         return botConfig;
       }
     }
@@ -239,8 +235,9 @@
     if (!botConfig)
       throw new invalidBotConfig(`init() in BotConversationUI.svelte 
     didn't find a valid botConfig passed in as a prop`);
-
+    
     let conversation;
+
     // getConversation() gets in progress conversation from sessionStorage or
     // if not present, create a new conversation that starts from the beginning
     // with initConversation. Preserves existing conversation across page loads.

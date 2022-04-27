@@ -136,7 +136,7 @@ botConfig. For example:
         waitForStartNewConversation: waitForStartNewConversation,
         localStorageKey: localStorageKey,
         getConfigFromRemote: getConfigFromRemote,
-        botConfig: botConfig,
+        propBotConfig: botConfig,
       },
     });
   }
