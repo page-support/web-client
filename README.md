@@ -104,7 +104,7 @@ Next add the Bot component to your page's HTML
 <Bot propBotConfig={botConfig} 
      bind:this={botBinding} 
      localStorageKey={localStorageKey}
-     cssFileURI={"path/to/the/page-support-bot-bundle.css"} 
+     cssFileURI={"path/to/the/page-support-bot-bundle.css} 
 /> 
 ```
 

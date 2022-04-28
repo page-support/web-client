@@ -19,7 +19,7 @@
    *     If there is a cached botConfig in localStorage it should be used. This
    *     covers the case where user refreshed page after startConversation() was
    *     called.
-   *     waitForStartNewConversation: true allows <Bot> to be added to the DOM
+   *     `waitForStartNewConversation: true` allows <Bot> to be added to the DOM
    *     and a binding to <Bot> be avaliable to caller so it can be used. Without
    *     this option you get into a catch-22 where the component can't be rendered
    *     because it lacks a BotConfig (if no remote), but component has to be
