@@ -6,50 +6,21 @@
    * from sites that bot is added to.
    */
 
-  /* Scenarios:
-   *
-   *  a) Containing site wants to load Bot component but not display it until
-   *     runBot() is called and (usually) a botConfig is passed in via
-   *     startNewConversation().
-   *     Args:
-   *         propBotConfig: null
-   *         waitForStartNewConversation: true
-   *         getConfigFromRemote: true | false
-   *     loadUI() should display nothing until startNewConversation() called.
-   *     If there is a cached botConfig in localStorage it should be used. This
-   *     covers the case where user refreshed page after startConversation() was
-   *     called.
-   *     `waitForStartNewConversation: true` allows <Bot> to be added to the DOM
-   *     and a binding to <Bot> be avaliable to caller so it can be used. Without
-   *     this option you get into a catch-22 where the component can't be rendered
-   *     because it lacks a BotConfig (if no remote), but component has to be
-   *     rendered for the loading code to get a binding to the component to call
-   *     startNewConversation.
-   *  b) Containing site wants to load Bot and start conversation at load time.
-   *     loadUI() displays Bot at component load time. BotConfig can come from
-   *     propBotConfig or remote.
-   *     Args:
-   *       propBotConfig: BotConfig object
-   *       getConfigFromRemote: false
-   *       waitForStartNewConversation: false
-   *  c) NOT IMPLEMENTED: Containing site wants to load Bot and get botConfig from remote then
-   *     start conversation. getConfigFromRemote should be true and a remote
-   *     URL provided to Bot via a prop. NOT IMPLEMENTED YET. loadUI() displays
-   *     Bot at start of conversation after remote fetch. Show spinner during
-   *     remote fetch. TODO: change getConfigFromRemote into null | URL so
-   *     caller can pass in as a prop to getBotConfig()
-   *     Args:
-   *      propBotConfig: null
-   *      getConfigFromRemote: URL
-   *      waitForStartNewConversation: false | true. If true startNewConversation
-   *      should not pass in a BotConfig.
-   *
-   */
+
 
   /* props and functions passed in from Bot.svelte. See comments there for background. */
   // these four are passed in from Bot.svelte - see it for explanation.
+
+  // Prop: OPTIONAL: Boolean true if this component should display nothing until
+  // startNewConversation() is called. This allows <Bot> to be added to the DOM
+  // and a binding to <Bot> be avaliable to caller so it can be used. Without
+  // this option you get into a catch-22 where the component can't be rendered
+  // because it lacks a BotConfig, but component has to be rendered for the
+  // loading code to get a binding to the component to call startNewConversation.
+  export let waitForStartNewConversation = false;
+
+  // See Bot.svelte for info on these props
   export let propBotConfig;
-  export let waitForStartNewConversation;
   export let getConfigFromRemote = false;
   export let localStorageKey;
   // show errors in the Bot UI, set to false to only log with console.error
@@ -113,10 +84,14 @@
   // a startFrameId property to tell us where to start. currentFrame is
   // set at botConfig load time in loadBotConfig();
   let currentFrame = null;
+  
 
   /*********** Lifecycle functions ************/
-  // init() loads data needed to render UI.  If we are waiting on parent site to
-  // trigger bot, then don't load data and just render the UI needed for errors.
+
+  // init() loads data needed to render UI. Only call this if we are ready to
+  // fetch a botConfig and start a conversation. So if waitForStartNewConversation
+  // is true, don't call it. The parent site will call startNewConversation()
+  // in Bot, which will call init()
   if (!waitForStartNewConversation) init(propBotConfig, false);
 
   /* Initialize the UI and its variables. First it loads botConfig, then
@@ -136,6 +111,12 @@
 
   /* init()
    * load botConfig and then conversation object so UI can be displayed
+   * Args:
+   *   botConfig: OPTIONAL: if not present will try to load one from remote.
+   *              will error if not found on remote or in localStorage
+   *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+   *              even if one was ongoing. By default continues any existing 
+   *              conversation (or if set to false)
    */
   async function init(botConfig = null, startNewConversation = false) {
     // if botConfig not passed in from Bot.startNewConversation calling
@@ -146,8 +127,7 @@
         botConfig = await loadBotConfig(
           false,
           getConfigFromRemote,
-          localStorageKey,
-          waitForStartNewConversation
+          localStorageKey
         );
       }
       
@@ -186,20 +166,14 @@
   function loadBotConfig(
     botConfig,
     getConfigFromRemote,
-    localStorageKey,
-    waitForStartNewConversation
+    localStorageKey
   ) {
     if (botConfig && versionCompatible(botConfig.version)) {
       saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
       return botConfig;
     } else {
       loadingInProgress = true; // shows loading indicator until data loaded.
-      botConfig = getBotConfig(
-        false,
-        getConfigFromRemote,
-        localStorageKey,
-        waitForStartNewConversation
-      );
+      botConfig = getBotConfig(getConfigFromRemote, localStorageKey );
       loadingInProgress = false; // remove loading indicator once data loaded.
       if (botConfig) {
         return botConfig;
@@ -459,6 +433,7 @@
 <div id="botShadowTree">
   {#if UIError && showUnfriendlyError}
     <p style="color: red">Bot failed to load: {UIError}</p>
+
   {:else if loadingInProgress && !conversation}
     <button type="button" class="bg-indigo-500">
       <svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24">
@@ -478,7 +453,12 @@
       </svg>
       <div class="text-indigo-600">Loading...</div>
     </button>
+
+  {:else if waitForStartNewConversation}
+    <!-- show nothing: used when waiting for calling site to use startNewConversation() -->
+
   {:else if conversation}
+
     <!-- the container div will expand to the width given it, but elements 
           like selectors are sized to fixed width appropriate to small 
           mobile screens. Set max width in a div containing this one if needed, e.g.

@@ -108,18 +108,81 @@ Next add the Bot component to your page's HTML
 /> 
 ```
 
+Or, add attach it to the DOM with javascript:
+
+```
+import botConfig from "./page.support.botconfig.js";
+
+// IIFE creates bot and attaches it to the DOM
+(function () {
+
+// Set to the id of the DOM element you want the bot attached to
+const botDOMId = 'netDiaBot';  
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    // The DOM element the Bot will be attached to
+    el = document.getElementById(botDOMId);
+    if (el) {
+      // PageSupportBot is the name of the var exported by page.support.min.js 
+      // Bot is the constructor it exports.   
+      const bot = new PageSupportBot.Bot({
+        target: el,
+        props: {
+          propBotConfig: botConfig,
+          localStorageKey: 'botNumberOne',
+          cssFileURI: 'page-support-bot-bundle.css'
+        }
+      });
+    } else {
+      console.log(`page.support bot setup script failed to find "${botDOMId}" in DOM`);
+    } 
+})
+
+  
+})();  // iife closure
+```
+
 Bot supports the following props:
 
 * botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
 * propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
 * localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
-* waitForStartNewConversation is an optional Boolean that defaults to false. If set to true, it tells this component to display nothing until startNewConversation() is called. This allows <Bot> to be added to the DOM without rendering anything. Its binding will be available, which lets the containing site call startNewConversation.
 
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 
 
+### Control bot start and botConfig from parent site
+Parent sites might want to control when a bot starts a new conversation, for example with a "Run" button. This button would also restart an existing conversation if one was in progress. You might want to do this without reloading the component. You might also want to pass in a new botConfig when the user clicks "Run" in the parent site. This might be useful for Bot markdown authoring scenarios. For this use case, you'd use code something like this
 
+```
+// in your javascript
+let botBinding;
+
+// runBot() is run by an onClick event 
+function runBot() {
+  botBinding.startNewConversation(botConfig);
+}
+
+// in your html.
+
+
+// By setting waitForStartNewConversation to true bot will display nothing
+// until startNewConversation is called.
+<Bot propBotConfig={null} 
+     bind:this={botBinding}
+     propGetConfigFromRemote={false}
+     localStorageKey={localStoragePreviewBotKey} 
+     waitForStartNewConversation={true} 
+/> 
+
+```
+
+
+### Show / hide bot to save screen real estate
+
+The Parent site can add the bot IIFE or js module to the DOM whenever they want. If the botConfig is being fetched from remote, you might want to load bot after the DOM is loaded, but in a hidden state so it will fetch botConfig and be ready to display. When you want to display the bot, e.g. if a user clicks a button to interact with the bot, unhide the HTML element the bot resides under.  
 
 
 ### Add static assets - images and css

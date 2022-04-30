@@ -278,10 +278,8 @@ function rewindConversation(rewoundRoundIndex, getConfigFromRemote, localStorage
   // Reset unSpokenFrames to conversation start point, then remove slots
   // present in completedRounds. We don't want to get a new botConfig nor
   // force a remote reload, so both args are false.
-  const bot = getBotConfig(false, 
-                           getConfigFromRemote, 
-                           localStorageKey,
-                           false);
+  const bot = getBotConfig(getConfigFromRemote, 
+                           localStorageKey);
   conversation.unSpokenFrames = clone(bot.frames); 
   
   conversation.completedRounds.forEach((round) => {

@@ -1,5 +1,7 @@
 import Bot from '../ui/Bot.svelte';
 
+/******** Component *******/
+
 export default {
   title: 'Bot',
   component: Bot,
@@ -9,6 +11,7 @@ import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.su
 import multi_select_test from '../dialog/tests/multiSelect.page.support.js';
 import images_test from '../dialog/tests/imagesTest.js';
 
+/****** stories *****/
 
 export const diagnosticConversationOne = () => ({
   Component: Bot,
@@ -17,6 +20,7 @@ export const diagnosticConversationOne = () => ({
 
   props: { botConfig: diagnostic_test,
            localStorageKey: 'diagConvOne',
+           // test non-default css file uri
            cssFileURI: './page-support-bot-bundle.css'
   }
 });
@@ -25,7 +29,7 @@ export const diagnosticConversationOne = () => ({
 export const multiSelectConversation = () => ({
   Component: Bot,
 
-  // Pass props and bindings into component
+  // Test default css file uri
 
   props: { botConfig: multi_select_test,
            localStorageKey: 'multiSelect'
@@ -43,4 +47,19 @@ export const imagesTest = () => ({
            localStorageKey: 'imagesTest'
            }
    
-})
+});
+
+
+// Should not display anything if the waitForStartNewConversionTrue prop is true
+export const waitForStartNewConversionTrue = () => ({
+  Component: Bot,
+
+  // Pass props and bindings into component
+
+  props: { botConfig: images_test,
+           getConfigFromRemote: false,
+           localStorageKey: 'imagesTes1t',
+           waitForStartNewConversation: true
+           }
+   
+});

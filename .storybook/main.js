@@ -7,7 +7,8 @@ module.exports = {
     "@storybook/addon-links",
     "@storybook/addon-essentials",
     "@storybook/addon-svelte-csf",
-    "@storybook/addon-postcss"
+    "@storybook/addon-postcss",
+    "@storybook/addon-controls"
   ],
   staticDirs: ['../dist'],
   framework: "@storybook/svelte",
