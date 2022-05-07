@@ -1,11 +1,13 @@
 import Bot from '../ui/Bot.svelte';
 
+
 /******** Component *******/
 
 export default {
   title: 'Bot',
   component: Bot,
 }
+
 
 import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.support.js'; 
 import multi_select_test from '../dialog/tests/multiSelect.page.support.js';
@@ -50,16 +52,17 @@ export const imagesTest = () => ({
 });
 
 
-// Should not display anything if the waitForStartNewConversionTrue prop is true
+// Should not display anything of the waitForStartNewConversionTrue prop is true
 export const waitForStartNewConversionTrue = () => ({
   Component: Bot,
 
   // Pass props and bindings into component
 
-  props: { botConfig: images_test,
+  props: { botConfig: null,
            getConfigFromRemote: false,
            localStorageKey: 'imagesTes1t',
            waitForStartNewConversation: true
            }
    
 });
+
