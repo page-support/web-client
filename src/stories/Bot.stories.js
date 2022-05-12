@@ -1,3 +1,12 @@
+/* Debug suggestions
+ * 
+ * "npm run storybook" yields no output to browser and no errors:
+ * try deleting node_modules/.cache/storybook then stop storybook and restart
+ * by running "npm run storybook" again
+ * 
+ */
+
+
 import Bot from '../ui/Bot.svelte';
 
 

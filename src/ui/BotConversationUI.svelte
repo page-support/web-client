@@ -6,7 +6,7 @@
    * from sites that bot is added to.
    */
 
-
+  export { startNewConversation };
 
   /* props and functions passed in from Bot.svelte. See comments there for background. */
   // these four are passed in from Bot.svelte - see it for explanation.
@@ -121,6 +121,7 @@
   async function init(botConfig = null, startNewConversation = false) {
     // if botConfig not passed in from Bot.startNewConversation calling
     // this function, then load it from the prop or remote.  throw if fails.
+    console.log(`in init in BotCon..${waitForStartNewConversation}`)
     try {
       if (!botConfig) {
         // try to get from localstorage or remote
@@ -144,6 +145,24 @@
       UIError = e;
     }
   }
+
+
+  /* startNewConversation()
+   * Turns off waitForStartNewConversation then runs init. Used by parent 
+   * component's startNewConversation() function.
+   * Args:
+   *   botConfig: OPTIONAL: if not present will try to load one from remote.
+   *              will error if not found on remote or in localStorage
+   *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+   *              even if one was ongoing. By default continues any existing 
+   *              conversation (or if set to false)
+   */
+  function startNewConversation(botConfig = null, startNewConversation = false) {
+    // set to false otherwise won't display anything due to if clause below
+    waitForStartNewConversation = false;  
+    init(botConfig, startNewConversation);
+  }
+
 
   /* loadBotConfig() => botConfig || raises invalidBotConfig()
    * Acquire a botConfig from wherever it can be found:
@@ -222,8 +241,9 @@
         getConversation(localStorageKey) ||
         initConversation(botConfig, currentFrame, localStorageKey);
     }
-
+    
     if (conversation) {
+      console.log('in conversation block')
       frameIntroduction = conversation.introduction;
       localeString = conversation.localeString;
       populateConversationUI(); // set view variables
@@ -247,7 +267,7 @@
     ({ completedRounds, replyType, replyOptions } =
       getNextSlot(localStorageKey));
   }
-
+  console.log(`replyType ${JSON.stringify(replyType, null, 2)}`);
   // After any DOM update (usually triggered by a variable here being updated
   // for instance the bot renders a say, run the listed functions.
   afterUpdate(() => {
