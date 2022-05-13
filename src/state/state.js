@@ -81,7 +81,7 @@ function getBotConfig(getConfigFromRemote,
       const botConfig = Object.freeze(JSON.parse(botJSON));
       if (versionCompatible(botConfig.version)) return botConfig;
   } else {
-    throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote`);
+    throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote. getConfigFromRemote=${getConfigFromRemote}, localStorageKey=${localStorageKey}`);
   }
 }
 
@@ -221,6 +221,7 @@ function read(key) {
 function saveBotState(stateToSave, localStorageKey) {
   let json = JSON.stringify(stateToSave);
   localStorage.setItem(localStorageKey, json);
+  console.log('saved botConfig')
 }
 
 

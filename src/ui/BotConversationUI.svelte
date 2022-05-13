@@ -128,15 +128,8 @@
     // this function, then load it from the prop or remote.  throw if fails.
     console.log(`in init in BotCon..${waitForStartNewConversation}`)
     try {
-      if (!botConfig) {
-        // try to get from localstorage or remote
-        botConfig = await loadBotConfig(
-          false,
-          getConfigFromRemote,
-          localStorageKey
-        );
-      }
-      
+      // try to get from localstorage or remote
+      botConfig = await loadBotConfig(botConfig,getConfigFromRemote,localStorageKey);
       currentFrame = botConfig.startFrameId; // set frame manually since only one now
       conversation = loadConversation(botConfig, startNewConversation);
       if (conversation) {
@@ -209,6 +202,7 @@
     );
   }
 
+  
   /* loadConversation() => conversation object || null
    * Called when the website Bot is embedded in does a page load.
    * Populates view variables like completedRounds and accepted replies so the UI
@@ -364,7 +358,7 @@
       userReplyIndexes: event.detail,
       ending: ENDINGS.completed,
       stats: {},
-      localStorageKey: localStorageKey,
+      localStorageKey: localStorageKey
     });
 
     populateConversationUI(); // get next slot and update the UI.

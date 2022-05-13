@@ -13,7 +13,9 @@ the function is called.
 -->
 
 <script>
-  export let botConfig;
+  export let botConfigOne;
+  export let botConfigTwo;
+  
   let botBindingOne;
   let botBindingTwo;
 
@@ -21,12 +23,12 @@ the function is called.
   import Bot from "../Bot.svelte";
 
   function runOne() {
-    botBindingOne.startNewConversation(botConfig);
+    botBindingOne.startNewConversation(botConfigOne);
     previewBot = true;
   }
 
   function runTwo() {
-    botBindingTwo.startNewConversation(botConfig);
+    botBindingTwo.startNewConversation();
     previewBot = false;
   }
 
@@ -36,7 +38,7 @@ the function is called.
 
 <!-- this mimic's publisher's parser/BotPreview.svelte use of 
 previewBot that passes in the botConfig argument in the call
-to startNewConversation() -->
+to startNewConversation(botConfig) -->
 <Bot
   botConfig={null}
   bind:this={botBindingOne}
@@ -53,9 +55,10 @@ to startNewConversation() -->
 <button on:click={runTwo}>Run with botConfig in prop</button>
 
 <!-- this mimic's publisher's parser/Preview.svelte use of 
-showGuideBot that uses the botConfig argument in the prop -->
+showGuideBot that uses the botConfig argument in the prop and
+no argument in startNewConversation() -->
 <Bot
-  botConfig={botConfig}
+  botConfig={botConfigTwo}
   bind:this={botBindingTwo}
   getConfigFromRemote={false}
   waitForStartNewConversation={true}

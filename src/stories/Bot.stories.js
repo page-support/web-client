@@ -61,7 +61,7 @@ export const imagesTest = () => ({
 });
 
 
-// Should not display anything of the waitForStartNewConversionTrue prop is true
+// Should not display anything since the waitForStartNewConversionTrue prop is true
 export const waitForStartNewConversionTrue = () => ({
   Component: Bot,
 

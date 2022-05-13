@@ -7,7 +7,7 @@ export default {
   component: RunBotTestHarness,
 }
 
-
+import images_test from '../dialog/tests/imagesTest.js';
 import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.support.js'; 
 
 // Should show nothing initially but a Run button at bottom
@@ -16,6 +16,7 @@ import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.su
 export const runBotAfterLoad = () => ({
   Component: RunBotTestHarness,
   props: {
-    botConfig: diagnostic_test
+    botConfigOne: diagnostic_test,
+    botConfigTwo: images_test
   }
 });
