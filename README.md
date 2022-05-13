@@ -145,10 +145,15 @@ document.addEventListener("DOMContentLoaded", function() {
 
 Bot supports the following props:
 
+REQUIRED
+* localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
+
+OPTIONAL (required in some circumstances)
+* cssFileURI: URI where the bot's css file is located. The value is used to set the href property of a link that loads the stylesheet. This allows the parent site flexibility about where to put the css file. If not provided, the bot uses the CSS_FILE constant which equals './page-support-bot-bundle.css'. The defaults works if the css file is in the same directory as the js executables. That will be true if bot is imported from an npm package - since both js and css are in the dist folder. 
 * botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
 * propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
-* localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
+* waitForStartNewConversation is an optional boolean which if true will cause bot to display nothing until the startNewConversation() function is called. Use when you want your site to control when the bot activates and displays on a page. Defaults to false, which means the bot will display at page load with the first round of conversation displayed.
 
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 

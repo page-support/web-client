@@ -221,7 +221,6 @@ function read(key) {
 function saveBotState(stateToSave, localStorageKey) {
   let json = JSON.stringify(stateToSave);
   localStorage.setItem(localStorageKey, json);
-  console.log('saved botConfig')
 }
 
 

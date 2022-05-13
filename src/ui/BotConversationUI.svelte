@@ -126,7 +126,6 @@
   async function init(botConfig = null, startNewConversation = false) {
     // if botConfig not passed in from Bot.startNewConversation calling
     // this function, then load it from the prop or remote.  throw if fails.
-    console.log(`in init in BotCon..${waitForStartNewConversation}`)
     try {
       // try to get from localstorage or remote
       botConfig = await loadBotConfig(botConfig,getConfigFromRemote,localStorageKey);
@@ -242,7 +241,6 @@
     }
     
     if (conversation) {
-      console.log('in conversation block')
       frameIntroduction = conversation.introduction;
       localeString = conversation.localeString;
       populateConversationUI(); // set view variables
@@ -266,7 +264,6 @@
     ({ completedRounds, replyType, replyOptions } =
       getNextSlot(localStorageKey));
   }
-  console.log(`replyType ${JSON.stringify(replyType, null, 2)}`);
   // After any DOM update (usually triggered by a variable here being updated
   // for instance the bot renders a say, run the listed functions.
   afterUpdate(() => {

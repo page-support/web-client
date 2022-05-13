@@ -14,7 +14,7 @@
     "url": "https://github.com/page-support/Bot.git"
   },
   "license": "MIT",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "svelte": "src/index.js",
   "module": "dist/index.mjs",
   "main": "dist/index.js",

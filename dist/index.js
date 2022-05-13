@@ -420,16 +420,10 @@
      * Returns null and logs error if botConfig acquisition or parsing fails.
      * 
      * Args: 
-     *   REQUIRED: newConfig is a boolean that defaults to false, 
-     *   set to true to force new botConfig to be loaded
      *   REQUIRED: getConfigFromRemote is a bool that tells this function whether 
      *   to try to get a config from remote if its not already there. See the 
      *   scenarios described at top of Bot.svelte for usage.
      *   REQUIRED: localStorageKey is a unique per bot string
-     *   REQUIRED: waitForStartNewConversation: boolean: if false, don't error
-     *     if no botConfig in localStorage - caller will wait for startNewConversation
-     *     to supply it. Called does want to get BotConfig from localStorage if
-     *     available, which is why we need to pass this in. 
      * 
      * If not cached, fetch from remote unless this is the beginning of a
      * a new conversation, in which case always fetch from remote. This is
@@ -437,38 +431,24 @@
      * then forgot the answer or want to take a different path.  Might be
      * significant time between the first (cached) run and the second one.
      */
-    function getBotConfig(newConfig, 
-                          getConfigFromRemote, 
-                          localStorageKey,
-                          waitForStartNewConversation) {
-      if (newConfig === undefined || getConfigFromRemote === undefined ||
-        localStorageKey === undefined || waitForStartNewConversation === undefined) {
-          throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument. newConfig=${newConfig}; waitForStartNewConversation= ${waitForStartNewConversation}, getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
+    function getBotConfig(getConfigFromRemote, 
+                          localStorageKey) {
+      if (getConfigFromRemote === undefined || localStorageKey === undefined ) {
+          throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument.  getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
       }
 
-      if (newConfig) {
-        // newConfig forces getting from remote even if we have one locally
-        botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-      } else {
-        // if newConfig is false, only try to get config from remote if not present locally
-        let botJSON = localStorage.getItem(localStorageKey);
-        if (getConfigFromRemote && !botJSON && !waitForStartNewConversation) {
-          botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-        }
-
-        if (botJSON) {
+      let botJSON;
+      // newConfig forces getting from remote even if we have one locally
+      botJSON = getConfigFromRemote ? fetchBotConfigFromRemote(REMOTE_CONFIG_URL, 
+                                                     localStorageKey) :
+                                      localStorage.getItem(localStorageKey);
+      if (botJSON) {
           // parse and freeze botJSON since we got something, return
           // Freeze and return botConfig to ensure reusability in new conversation
           const botConfig = Object.freeze(JSON.parse(botJSON));
           if (versionCompatible(botConfig.version)) return botConfig;
-            
-        } else if (!waitForStartNewConversation) {
-          // if we're here, we failed to get botJSON both locally and from remote
-          // AND waitForStartNewConversation is false so caller doesn't want Bot
-          // to get BotConfig from startNewConversation(botConfig) so error.
-          throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote and waitForStartNewConversation prop was false`);
-        }
-        // do nothing if waitForStartNewConversation is true
+      } else {
+        throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote. getConfigFromRemote=${getConfigFromRemote}, localStorageKey=${localStorageKey}`);
       }
     }
 
@@ -547,6 +527,7 @@
     function saveBotState(stateToSave, localStorageKey) {
       let json = JSON.stringify(stateToSave);
       localStorage.setItem(localStorageKey, json);
+      console.log('saved botConfig');
     }
 
 
@@ -4523,10 +4504,8 @@
       // Reset unSpokenFrames to conversation start point, then remove slots
       // present in completedRounds. We don't want to get a new botConfig nor
       // force a remote reload, so both args are false.
-      const bot = getBotConfig(false, 
-                               getConfigFromRemote, 
-                               localStorageKey,
-                               false);
+      const bot = getBotConfig(getConfigFromRemote, 
+                               localStorageKey);
       conversation.unSpokenFrames = clone$1(bot.frames); 
       
       conversation.completedRounds.forEach((round) => {
@@ -8069,27 +8048,27 @@ pageSupportBotTracker() to you global namespace.`);
 
     function get_each_context_1(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[36] = list[i];
-    	child_ctx[38] = i;
+    	child_ctx[40] = list[i];
+    	child_ctx[42] = i;
     	return child_ctx;
     }
 
     function get_each_context(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[36] = list[i];
-    	child_ctx[38] = i;
+    	child_ctx[40] = list[i];
+    	child_ctx[42] = i;
     	return child_ctx;
     }
 
     function get_each_context_2(ctx, list, i) {
     	const child_ctx = ctx.slice();
-    	child_ctx[40] = list[i].slot;
-    	child_ctx[41] = list[i].userReplyValues;
-    	child_ctx[43] = i;
+    	child_ctx[44] = list[i].slot;
+    	child_ctx[45] = list[i].userReplyValues;
+    	child_ctx[47] = i;
     	return child_ctx;
     }
 
-    // (660:2) {:else}
+    // (659:2) {:else}
     function create_else_block(ctx) {
     	let p;
 
@@ -8111,25 +8090,25 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (481:25) 
-    function create_if_block_2(ctx) {
+    // (479:25) 
+    function create_if_block_3(ctx) {
     	let div6;
     	let div1;
     	let div0;
-    	let raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "";
+    	let raw0_value = marked(/*frameIntroduction*/ ctx[9]) + "";
     	let t0;
     	let t1;
     	let div5;
     	let div2;
     	let p;
-    	let raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "";
+    	let raw1_value = marked(/*completedRounds*/ ctx[2][/*completedRounds*/ ctx[2].length - 1].slot.ask) + "";
     	let t2;
     	let div4;
     	let div3;
     	let current_block_type_index;
     	let if_block;
     	let current;
-    	let each_value_2 = /*completedRounds*/ ctx[1].slice(0, -1);
+    	let each_value_2 = /*completedRounds*/ ctx[2].slice(0, -1);
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value_2.length; i += 1) {
@@ -8137,23 +8116,23 @@ pageSupportBotTracker() to you global namespace.`);
     	}
 
     	const if_block_creators = [
-    		create_if_block_3,
     		create_if_block_4,
     		create_if_block_5,
     		create_if_block_6,
     		create_if_block_7,
-    		create_if_block_8
+    		create_if_block_8,
+    		create_if_block_9
     	];
 
     	const if_blocks = [];
 
     	function select_block_type_1(ctx, dirty) {
-    		if (/*replyType*/ ctx[3] === slotTypeEnum.diagnostic || /*replyType*/ ctx[3] === slotTypeEnum.single && /*replyOptions*/ ctx[2][0] === BUILT_IN_REPLIES.done[0]) return 0;
-    		if (/*replyType*/ ctx[3] === slotTypeEnum.single) return 1;
-    		if (/*replyType*/ ctx[3] === slotTypeEnum.multiple) return 2;
-    		if (/*replyType*/ ctx[3] === "freeTextEntry") return 3;
-    		if (/*replyType*/ ctx[3] === slotTypeEnum.endConversation) return 4;
-    		if (/*replyType*/ ctx[3] !== "answer") return 5;
+    		if (/*replyType*/ ctx[4] === slotTypeEnum.diagnostic || /*replyType*/ ctx[4] === slotTypeEnum.single && /*replyOptions*/ ctx[3][0] === BUILT_IN_REPLIES.done[0]) return 0;
+    		if (/*replyType*/ ctx[4] === slotTypeEnum.single) return 1;
+    		if (/*replyType*/ ctx[4] === slotTypeEnum.multiple) return 2;
+    		if (/*replyType*/ ctx[4] === "freeTextEntry") return 3;
+    		if (/*replyType*/ ctx[4] === slotTypeEnum.endConversation) return 4;
+    		if (/*replyType*/ ctx[4] !== "answer") return 5;
     		return -1;
     	}
 
@@ -8221,9 +8200,9 @@ pageSupportBotTracker() to you global namespace.`);
     			current = true;
     		},
     		p(ctx, dirty) {
-    			if ((!current || dirty[0] & /*frameIntroduction*/ 256) && raw0_value !== (raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "")) div0.innerHTML = raw0_value;
-    			if (dirty[0] & /*editUserReply, completedRounds*/ 16386) {
-    				each_value_2 = /*completedRounds*/ ctx[1].slice(0, -1);
+    			if ((!current || dirty[0] & /*frameIntroduction*/ 512) && raw0_value !== (raw0_value = marked(/*frameIntroduction*/ ctx[9]) + "")) div0.innerHTML = raw0_value;
+    			if (dirty[0] & /*editUserReply, completedRounds*/ 32772) {
+    				each_value_2 = /*completedRounds*/ ctx[2].slice(0, -1);
     				let i;
 
     				for (i = 0; i < each_value_2.length; i += 1) {
@@ -8245,7 +8224,7 @@ pageSupportBotTracker() to you global namespace.`);
     				each_blocks.length = each_value_2.length;
     			}
 
-    			if ((!current || dirty[0] & /*completedRounds*/ 2) && raw1_value !== (raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
+    			if ((!current || dirty[0] & /*completedRounds*/ 4) && raw1_value !== (raw1_value = marked(/*completedRounds*/ ctx[2][/*completedRounds*/ ctx[2].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
     			current_block_type_index = select_block_type_1(ctx);
 
     			if (current_block_type_index === previous_block_index) {
@@ -8300,7 +8279,19 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (462:47) 
+    // (476:40) 
+    function create_if_block_2(ctx) {
+    	return {
+    		c: noop,
+    		m: noop,
+    		p: noop,
+    		i: noop,
+    		o: noop,
+    		d: noop
+    	};
+    }
+
+    // (456:47) 
     function create_if_block_1(ctx) {
     	let button;
 
@@ -8326,7 +8317,7 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (460:2) {#if UIError && showUnfriendlyError}
+    // (453:2) {#if UIError && showUnfriendlyError}
     function create_if_block(ctx) {
     	let p;
     	let t0;
@@ -8336,7 +8327,7 @@ pageSupportBotTracker() to you global namespace.`);
     		c() {
     			p = element("p");
     			t0 = text("Bot failed to load: ");
-    			t1 = text(/*UIError*/ ctx[9]);
+    			t1 = text(/*UIError*/ ctx[10]);
     			set_style(p, "color", "red");
     		},
     		m(target, anchor) {
@@ -8345,7 +8336,7 @@ pageSupportBotTracker() to you global namespace.`);
     			append(p, t1);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*UIError*/ 512) set_data(t1, /*UIError*/ ctx[9]);
+    			if (dirty[0] & /*UIError*/ 1024) set_data(t1, /*UIError*/ ctx[10]);
     		},
     		i: noop,
     		o: noop,
@@ -8355,11 +8346,11 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (512:12) {#if userReplyValues.length > 0}
-    function create_if_block_9(ctx) {
+    // (511:12) {#if userReplyValues.length > 0}
+    function create_if_block_10(ctx) {
     	let div;
     	let p;
-    	let t0_value = /*userReplyValues*/ ctx[41].join(", ") + "";
+    	let t0_value = /*userReplyValues*/ ctx[45].join(", ") + "";
     	let t0;
     	let t1;
     	let svg;
@@ -8368,7 +8359,7 @@ pageSupportBotTracker() to you global namespace.`);
     	let dispose;
 
     	function click_handler() {
-    		return /*click_handler*/ ctx[23](/*rewoundRoundIndex*/ ctx[43]);
+    		return /*click_handler*/ ctx[25](/*rewoundRoundIndex*/ ctx[47]);
     	}
 
     	return {
@@ -8405,7 +8396,7 @@ pageSupportBotTracker() to you global namespace.`);
     		},
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
-    			if (dirty[0] & /*completedRounds*/ 2 && t0_value !== (t0_value = /*userReplyValues*/ ctx[41].join(", ") + "")) set_data(t0, t0_value);
+    			if (dirty[0] & /*completedRounds*/ 4 && t0_value !== (t0_value = /*userReplyValues*/ ctx[45].join(", ") + "")) set_data(t0, t0_value);
     		},
     		d(detaching) {
     			if (detaching) detach(div);
@@ -8415,14 +8406,14 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (501:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+    // (500:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
     function create_each_block_2(ctx) {
     	let div;
     	let p;
-    	let raw_value = marked(/*slot*/ ctx[40].ask) + "";
+    	let raw_value = marked(/*slot*/ ctx[44].ask) + "";
     	let t0;
     	let t1;
-    	let if_block = /*userReplyValues*/ ctx[41].length > 0 && create_if_block_9(ctx);
+    	let if_block = /*userReplyValues*/ ctx[45].length > 0 && create_if_block_10(ctx);
 
     	return {
     		c() {
@@ -8444,12 +8435,12 @@ pageSupportBotTracker() to you global namespace.`);
     			append(div, t1);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*completedRounds*/ 2 && raw_value !== (raw_value = marked(/*slot*/ ctx[40].ask) + "")) p.innerHTML = raw_value;
-    			if (/*userReplyValues*/ ctx[41].length > 0) {
+    			if (dirty[0] & /*completedRounds*/ 4 && raw_value !== (raw_value = marked(/*slot*/ ctx[44].ask) + "")) p.innerHTML = raw_value;
+    			if (/*userReplyValues*/ ctx[45].length > 0) {
     				if (if_block) {
     					if_block.p(ctx, dirty);
     				} else {
-    					if_block = create_if_block_9(ctx);
+    					if_block = create_if_block_10(ctx);
     					if_block.c();
     					if_block.m(div, t1);
     				}
@@ -8465,8 +8456,8 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (647:45) 
-    function create_if_block_8(ctx) {
+    // (646:45) 
+    function create_if_block_9(ctx) {
     	let p;
     	let t0;
     	let t1;
@@ -8476,7 +8467,7 @@ pageSupportBotTracker() to you global namespace.`);
     		c() {
     			p = element("p");
     			t0 = text("Error: unsupported reply type of ");
-    			t1 = text(/*replyType*/ ctx[3]);
+    			t1 = text(/*replyType*/ ctx[4]);
     			t2 = text(" received");
     			attr(p, "class", "my-2");
     		},
@@ -8487,7 +8478,7 @@ pageSupportBotTracker() to you global namespace.`);
     			append(p, t2);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*replyType*/ 8) set_data(t1, /*replyType*/ ctx[3]);
+    			if (dirty[0] & /*replyType*/ 16) set_data(t1, /*replyType*/ ctx[4]);
     		},
     		i: noop,
     		o: noop,
@@ -8497,8 +8488,8 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (645:65) 
-    function create_if_block_7(ctx) {
+    // (644:65) 
+    function create_if_block_8(ctx) {
     	let p;
 
     	return {
@@ -8519,8 +8510,8 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (613:52) 
-    function create_if_block_6(ctx) {
+    // (612:52) 
+    function create_if_block_7(ctx) {
     	let div;
     	let input;
     	let t0;
@@ -8545,7 +8536,7 @@ pageSupportBotTracker() to you global namespace.`);
     			span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`;
     			t3 = space();
     			p = element("p");
-    			t4 = text(/*inputError*/ ctx[7]);
+    			t4 = text(/*inputError*/ ctx[8]);
     			attr(input, "type", "text");
     			attr(input, "size", "50");
     			attr(span, "class", "askIcon");
@@ -8554,7 +8545,7 @@ pageSupportBotTracker() to you global namespace.`);
     		m(target, anchor) {
     			insert(target, div, anchor);
     			append(div, input);
-    			set_input_value(input, /*userText*/ ctx[6]);
+    			set_input_value(input, /*userText*/ ctx[7]);
     			append(div, t0);
     			append(div, button);
     			append(div, t2);
@@ -8565,21 +8556,21 @@ pageSupportBotTracker() to you global namespace.`);
 
     			if (!mounted) {
     				dispose = [
-    					listen(input, "input", /*input_input_handler*/ ctx[27]),
-    					listen(input, "keyup", /*keyup_handler*/ ctx[28]),
-    					listen(button, "click", /*handleTextInput*/ ctx[16]),
-    					listen(span, "click", /*click_handler_3*/ ctx[29])
+    					listen(input, "input", /*input_input_handler*/ ctx[29]),
+    					listen(input, "keyup", /*keyup_handler*/ ctx[30]),
+    					listen(button, "click", /*handleTextInput*/ ctx[17]),
+    					listen(span, "click", /*click_handler_3*/ ctx[31])
     				];
 
     				mounted = true;
     			}
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*userText*/ 64 && input.value !== /*userText*/ ctx[6]) {
-    				set_input_value(input, /*userText*/ ctx[6]);
+    			if (dirty[0] & /*userText*/ 128 && input.value !== /*userText*/ ctx[7]) {
+    				set_input_value(input, /*userText*/ ctx[7]);
     			}
 
-    			if (dirty[0] & /*inputError*/ 128) set_data(t4, /*inputError*/ ctx[7]);
+    			if (dirty[0] & /*inputError*/ 256) set_data(t4, /*inputError*/ ctx[8]);
     		},
     		i: noop,
     		o: noop,
@@ -8591,16 +8582,16 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (611:58) 
-    function create_if_block_5(ctx) {
+    // (610:58) 
+    function create_if_block_6(ctx) {
     	let multiselect;
     	let current;
 
     	multiselect = new MultiSelect({
-    			props: { replyOptions: /*replyOptions*/ ctx[2] }
+    			props: { replyOptions: /*replyOptions*/ ctx[3] }
     		});
 
-    	multiselect.$on("message", /*multiReplySubmit*/ ctx[13]);
+    	multiselect.$on("message", /*multiReplySubmit*/ ctx[14]);
 
     	return {
     		c() {
@@ -8612,7 +8603,7 @@ pageSupportBotTracker() to you global namespace.`);
     		},
     		p(ctx, dirty) {
     			const multiselect_changes = {};
-    			if (dirty[0] & /*replyOptions*/ 4) multiselect_changes.replyOptions = /*replyOptions*/ ctx[2];
+    			if (dirty[0] & /*replyOptions*/ 8) multiselect_changes.replyOptions = /*replyOptions*/ ctx[3];
     			multiselect.$set(multiselect_changes);
     		},
     		i(local) {
@@ -8630,8 +8621,8 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (578:56) 
-    function create_if_block_4(ctx) {
+    // (577:56) 
+    function create_if_block_5(ctx) {
     	let div1;
     	let div0;
     	let select;
@@ -8639,7 +8630,7 @@ pageSupportBotTracker() to you global namespace.`);
     	let button;
     	let mounted;
     	let dispose;
-    	let each_value_1 = /*replyOptions*/ ctx[2];
+    	let each_value_1 = /*replyOptions*/ ctx[3];
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value_1.length; i += 1) {
@@ -8660,7 +8651,7 @@ pageSupportBotTracker() to you global namespace.`);
     			button = element("button");
     			button.textContent = "Done";
     			attr(select, "class", "block w-full pl-2 pr-10 text-base font-medium border-gray-300 focus:outline-none focus:ring-primary-color sm:text-sm rounded-md");
-    			if (/*selectedReplyIndex*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[25].call(select));
+    			if (/*selectedReplyIndex*/ ctx[6] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[27].call(select));
     			attr(div0, "class", "w-full sm:max-w-xs");
     			attr(button, "type", "button");
     			attr(button, "class", "mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
@@ -8675,22 +8666,22 @@ pageSupportBotTracker() to you global namespace.`);
     				each_blocks[i].m(select, null);
     			}
 
-    			select_option(select, /*selectedReplyIndex*/ ctx[5]);
+    			select_option(select, /*selectedReplyIndex*/ ctx[6]);
     			append(div1, t0);
     			append(div1, button);
 
     			if (!mounted) {
     				dispose = [
-    					listen(select, "change", /*select_change_handler*/ ctx[25]),
-    					listen(button, "click", /*click_handler_2*/ ctx[26])
+    					listen(select, "change", /*select_change_handler*/ ctx[27]),
+    					listen(button, "click", /*click_handler_2*/ ctx[28])
     				];
 
     				mounted = true;
     			}
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*replyOptions*/ 4) {
-    				each_value_1 = /*replyOptions*/ ctx[2];
+    			if (dirty[0] & /*replyOptions*/ 8) {
+    				each_value_1 = /*replyOptions*/ ctx[3];
     				let i;
 
     				for (i = 0; i < each_value_1.length; i += 1) {
@@ -8712,8 +8703,8 @@ pageSupportBotTracker() to you global namespace.`);
     				each_blocks.length = each_value_1.length;
     			}
 
-    			if (dirty[0] & /*selectedReplyIndex*/ 32) {
-    				select_option(select, /*selectedReplyIndex*/ ctx[5]);
+    			if (dirty[0] & /*selectedReplyIndex*/ 64) {
+    				select_option(select, /*selectedReplyIndex*/ ctx[6]);
     			}
     		},
     		i: noop,
@@ -8727,11 +8718,11 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (555:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
-    function create_if_block_3(ctx) {
+    // (554:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+    function create_if_block_4(ctx) {
     	let div1;
     	let div0;
-    	let each_value = /*adaptRepliesToText*/ ctx[15](/*replyOptions*/ ctx[2]);
+    	let each_value = /*adaptRepliesToText*/ ctx[16](/*replyOptions*/ ctx[3]);
     	let each_blocks = [];
 
     	for (let i = 0; i < each_value.length; i += 1) {
@@ -8759,8 +8750,8 @@ pageSupportBotTracker() to you global namespace.`);
     			}
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 36868) {
-    				each_value = /*adaptRepliesToText*/ ctx[15](/*replyOptions*/ ctx[2]);
+    			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 73736) {
+    				each_value = /*adaptRepliesToText*/ ctx[16](/*replyOptions*/ ctx[3]);
     				let i;
 
     				for (i = 0; i < each_value.length; i += 1) {
@@ -8791,10 +8782,10 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (588:20) {#each replyOptions as userReplyValue, userReplyIndex}
+    // (587:20) {#each replyOptions as userReplyValue, userReplyIndex}
     function create_each_block_1(ctx) {
     	let option;
-    	let t_value = /*userReplyValue*/ ctx[36] + "";
+    	let t_value = /*userReplyValue*/ ctx[40] + "";
     	let t;
     	let option_value_value;
 
@@ -8802,7 +8793,7 @@ pageSupportBotTracker() to you global namespace.`);
     		c() {
     			option = element("option");
     			t = text(t_value);
-    			option.__value = option_value_value = /*userReplyIndex*/ ctx[38];
+    			option.__value = option_value_value = /*userReplyIndex*/ ctx[42];
     			option.value = option.__value;
     		},
     		m(target, anchor) {
@@ -8810,7 +8801,7 @@ pageSupportBotTracker() to you global namespace.`);
     			append(option, t);
     		},
     		p(ctx, dirty) {
-    			if (dirty[0] & /*replyOptions*/ 4 && t_value !== (t_value = /*userReplyValue*/ ctx[36] + "")) set_data(t, t_value);
+    			if (dirty[0] & /*replyOptions*/ 8 && t_value !== (t_value = /*userReplyValue*/ ctx[40] + "")) set_data(t, t_value);
     		},
     		d(detaching) {
     			if (detaching) detach(option);
@@ -8818,10 +8809,10 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    // (558:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+    // (557:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
     function create_each_block(ctx) {
     	let button;
-    	let t0_value = /*userReplyValue*/ ctx[36] + "";
+    	let t0_value = /*userReplyValue*/ ctx[40] + "";
     	let t0;
     	let t1;
     	let button_id_value;
@@ -8829,7 +8820,7 @@ pageSupportBotTracker() to you global namespace.`);
     	let dispose;
 
     	function click_handler_1() {
-    		return /*click_handler_1*/ ctx[24](/*userReplyValue*/ ctx[36], /*userReplyIndex*/ ctx[38]);
+    		return /*click_handler_1*/ ctx[26](/*userReplyValue*/ ctx[40], /*userReplyIndex*/ ctx[42]);
     	}
 
     	return {
@@ -8839,7 +8830,7 @@ pageSupportBotTracker() to you global namespace.`);
     			t1 = space();
     			attr(button, "type", "button");
     			attr(button, "class", "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
-    			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[38]);
+    			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[42]);
     		},
     		m(target, anchor) {
     			insert(target, button, anchor);
@@ -8853,7 +8844,7 @@ pageSupportBotTracker() to you global namespace.`);
     		},
     		p(new_ctx, dirty) {
     			ctx = new_ctx;
-    			if (dirty[0] & /*replyOptions*/ 4 && t0_value !== (t0_value = /*userReplyValue*/ ctx[36] + "")) set_data(t0, t0_value);
+    			if (dirty[0] & /*replyOptions*/ 8 && t0_value !== (t0_value = /*userReplyValue*/ ctx[40] + "")) set_data(t0, t0_value);
     		},
     		d(detaching) {
     			if (detaching) detach(button);
@@ -8868,14 +8859,23 @@ pageSupportBotTracker() to you global namespace.`);
     	let current_block_type_index;
     	let if_block;
     	let current;
-    	const if_block_creators = [create_if_block, create_if_block_1, create_if_block_2, create_else_block];
+
+    	const if_block_creators = [
+    		create_if_block,
+    		create_if_block_1,
+    		create_if_block_2,
+    		create_if_block_3,
+    		create_else_block
+    	];
+
     	const if_blocks = [];
 
     	function select_block_type(ctx, dirty) {
-    		if (/*UIError*/ ctx[9] && /*showUnfriendlyError*/ ctx[0]) return 0;
-    		if (/*loadingInProgress*/ ctx[10] && !/*conversation*/ ctx[11]) return 1;
-    		if (/*conversation*/ ctx[11]) return 2;
-    		return 3;
+    		if (/*UIError*/ ctx[10] && /*showUnfriendlyError*/ ctx[1]) return 0;
+    		if (/*loadingInProgress*/ ctx[11] && !/*conversation*/ ctx[12]) return 1;
+    		if (/*waitForStartNewConversation*/ ctx[0]) return 2;
+    		if (/*conversation*/ ctx[12]) return 3;
+    		return 4;
     	}
 
     	current_block_type_index = select_block_type(ctx);
@@ -8935,56 +8935,12 @@ pageSupportBotTracker() to you global namespace.`);
     	};
     }
 
-    function styleListItemsWithImages() {
-    	// Apply mt-12 to all the li elements if they have an image at top
-    	let selector = `#conversationHistory ul > li img:first-child, 
-                      #currentAsk ul > li img:first-child`;
-
-    	const shadowRt = document.querySelector("#botShadowHost").shadowRoot;
-    	const imgs = shadowRt.querySelectorAll(selector);
-
-    	if (imgs.length > 0) {
-    		// If images appear as first children in a list item,
-    		// add margin-top and remove bullets
-    		imgs.forEach(img => img.style.marginTop = "3rem");
-
-    		// Apply list-none up chain from img => li => ul elements that contain
-    		// those images
-    		imgs.forEach(img => {
-    			img.parentElement.parentElement.style.listStyleType = "none";
-    		});
-    	}
-    }
-
-    /* setBotSettings() => undefined
-         Arg: REQUIRED instance of botSettings object.
-         Sets client bot look and feel based on BotConfig. To test in storybook
-         select the story, click restart, then refresh the browser.  fontFamily
-         is applied to the whole botContainer element and all its children including
-         buttons, bot and user generated text. Must be called after the DOM is in 
-         place, ie. in an onMount async function. This is done in a js function 
-         to enable botConfig file to set cosmetics.
-       */
-    function setBotSettings(botSettings = {}) {
-    	const parent = document.getElementById("botShadowHost");
-
-    	// shadowRoot only accessible via parent element.
-    	const el = parent.shadowRoot.getElementById("botShadowTree");
-
-    	if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
-    	el.style.setProperty("--primary-color", botSettings.primaryColor);
-    	el.style.setProperty("--secondary-color", botSettings.secondaryColor);
-    	el.style.setProperty("--hover-color", botSettings.hoverColor);
-    	el.style.setProperty("--container-color", botSettings.containerBg);
-    	el.style.setProperty("--container-border-color", botSettings.containerBorderBg);
-    	el.style.fontFamily = botSettings.customerFont;
-    }
-
     function instance$1($$self, $$props, $$invalidate) {
+    	let { waitForStartNewConversation = false } = $$props;
     	let { propBotConfig } = $$props;
-    	let { waitForStartNewConversation } = $$props;
     	let { getConfigFromRemote = false } = $$props;
     	let { localStorageKey } = $$props;
+    	let { botShadowHostId } = $$props;
     	let { showUnfriendlyError = true } = $$props;
 
     	let completedRounds; // Object: populates conversation history in view
@@ -9006,7 +8962,6 @@ pageSupportBotTracker() to you global namespace.`);
     	// displayed in the if block
     	let conversation = null;
 
-    	/********* Constants ******************/
     	// Currently the page.support publisher is able to create botConfigs
     	// for multiple frames. However this Bot.svelte component does
     	// not support multiple frames - it lacks a way to for the user to
@@ -9018,9 +8973,12 @@ pageSupportBotTracker() to you global namespace.`);
     	// set at botConfig load time in loadBotConfig();
     	let currentFrame = null;
 
+    	/********* Constants ******************/
     	/*********** Lifecycle functions ************/
-    	// init() loads data needed to render UI.  If we are waiting on parent site to
-    	// trigger bot, then don't load data and just render the UI needed for errors.
+    	// init() loads data needed to render UI. Only call this if we are ready to
+    	// fetch a botConfig and start a conversation. So if waitForStartNewConversation
+    	// is true, don't call it. The parent site will call startNewConversation()
+    	// in Bot, which will call init()
     	if (!waitForStartNewConversation) init(propBotConfig, false);
 
     	/* Initialize the UI and its variables. First it loads botConfig, then
@@ -9036,18 +8994,24 @@ pageSupportBotTracker() to you global namespace.`);
     	/*************** data loading functions **************/
     	/* init()
      * load botConfig and then conversation object so UI can be displayed
+     * Args:
+     *   botConfig: OPTIONAL: if not present will try to load one from remote.
+     *              will error if not found on remote or in localStorage
+     *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+     *              even if one was ongoing. By default continues any existing 
+     *              conversation (or if set to false)
      */
     	async function init(botConfig = null, startNewConversation = false) {
     		// if botConfig not passed in from Bot.startNewConversation calling
     		// this function, then load it from the prop or remote.  throw if fails.
+    		console.log(`in init in BotCon..${waitForStartNewConversation}`);
+
     		try {
-    			if (!botConfig) {
-    				// try to get from localstorage or remote
-    				botConfig = await loadBotConfig(false, getConfigFromRemote, localStorageKey, waitForStartNewConversation);
-    			}
+    			// try to get from localstorage or remote
+    			botConfig = await loadBotConfig(botConfig, getConfigFromRemote, localStorageKey);
 
     			currentFrame = botConfig.startFrameId; // set frame manually since only one now
-    			$$invalidate(11, conversation = loadConversation(botConfig, startNewConversation));
+    			$$invalidate(12, conversation = loadConversation(botConfig, startNewConversation));
 
     			if (conversation) {
     				await tick();
@@ -9057,8 +9021,25 @@ pageSupportBotTracker() to you global namespace.`);
     			}
     		} catch(e) {
     			console.error(`Error in caught in botConversationUI.svelte init(): ${e}`);
-    			$$invalidate(9, UIError = e);
+    			$$invalidate(10, UIError = e);
     		}
+    	}
+
+    	/* startNewConversation()
+     * Turns off waitForStartNewConversation then runs init. Used by parent 
+     * component's startNewConversation() function.
+     * Args:
+     *   botConfig: OPTIONAL: if not present will try to load one from remote.
+     *              will error if not found on remote or in localStorage
+     *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+     *              even if one was ongoing. By default continues any existing 
+     *              conversation (or if set to false)
+     */
+    	function startNewConversation(botConfig = null, startNewConversation = false) {
+    		// set to false otherwise won't display anything due to if clause below
+    		$$invalidate(0, waitForStartNewConversation = false);
+
+    		init(botConfig, startNewConversation);
     	}
 
     	/* loadBotConfig() => botConfig || raises invalidBotConfig()
@@ -9079,14 +9060,14 @@ pageSupportBotTracker() to you global namespace.`);
      *  Note that the caller of this function is responsible for raising errors
      *  if botConfig acquisition fails.
      */
-    	function loadBotConfig(botConfig, getConfigFromRemote, localStorageKey, waitForStartNewConversation) {
+    	function loadBotConfig(botConfig, getConfigFromRemote, localStorageKey) {
     		if (botConfig && versionCompatible(botConfig.version)) {
     			saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
     			return botConfig;
     		} else {
-    			$$invalidate(10, loadingInProgress = true); // shows loading indicator until data loaded.
-    			botConfig = getBotConfig(false, getConfigFromRemote, localStorageKey, waitForStartNewConversation);
-    			$$invalidate(10, loadingInProgress = false); // remove loading indicator once data loaded.
+    			$$invalidate(11, loadingInProgress = true); // shows loading indicator until data loaded.
+    			botConfig = getBotConfig(getConfigFromRemote, localStorageKey);
+    			$$invalidate(11, loadingInProgress = false); // remove loading indicator once data loaded.
 
     			if (botConfig) {
     				return botConfig;
@@ -9133,7 +9114,8 @@ pageSupportBotTracker() to you global namespace.`);
     		}
 
     		if (conversation) {
-    			$$invalidate(8, frameIntroduction = conversation.introduction);
+    			console.log('in conversation block');
+    			$$invalidate(9, frameIntroduction = conversation.introduction);
     			populateConversationUI(); // set view variables
     			return conversation;
     		} else {
@@ -9149,17 +9131,75 @@ pageSupportBotTracker() to you global namespace.`);
      */
     	function populateConversationUI() {
     		// empty the input box and error for free text entry in case reused
-    		$$invalidate(6, userText = "");
+    		$$invalidate(7, userText = "");
 
-    		$$invalidate(7, inputError = "");
-    		$$invalidate(1, { completedRounds, replyType, replyOptions } = getNextSlot(localStorageKey), completedRounds, $$invalidate(3, replyType), $$invalidate(2, replyOptions));
+    		$$invalidate(8, inputError = "");
+    		$$invalidate(2, { completedRounds, replyType, replyOptions } = getNextSlot(localStorageKey), completedRounds, $$invalidate(4, replyType), $$invalidate(3, replyOptions));
     	}
+
+    	console.log(`replyType ${JSON.stringify(replyType, null, 2)}`);
 
     	// After any DOM update (usually triggered by a variable here being updated
     	// for instance the bot renders a say, run the listed functions.
     	afterUpdate(() => {
     		styleListItemsWithImages(); // apply non-default style to rendered markdown
     	});
+
+    	/* styleListItemsWithImages() => undefined
+     * Remove styles (and therefore the bullets) from list items coming from
+     * the marked render.
+     * Enables users to render pretty images at top of each list item
+     * and display them like product or topic cards.
+     * Do this if the first element in the li is an
+     * img, otherwise do nothing. Only select li elements that are children
+     * of ul elements - we don't want to do this to <ol> diagnostic items -
+     * seeing the numbering is useful as subsequent steps in history may refer back
+     * to earlier ones. Must run after DOM updates. No return value.
+     */
+    	function styleListItemsWithImages() {
+    		// Apply mt-12 to all the li elements if they have an image at top
+    		let selector = `#conversationHistory ul > li img:first-child, 
+                      #currentAsk ul > li img:first-child`;
+
+    		const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
+    		const imgs = shadowRoot.querySelectorAll(selector);
+
+    		if (imgs.length > 0) {
+    			// If images appear as first children in a list item,
+    			// add margin-top and remove bullets
+    			imgs.forEach(img => img.style.marginTop = "3rem");
+
+    			// Apply list-none up chain from img => li => ul elements that contain
+    			// those images
+    			imgs.forEach(img => {
+    				img.parentElement.parentElement.style.listStyleType = "none";
+    			});
+    		}
+    	}
+
+    	/* setBotSettings() => undefined
+         Arg: REQUIRED instance of botSettings object.
+         Sets client bot look and feel based on BotConfig. To test in storybook
+         select the story, click restart, then refresh the browser.  fontFamily
+         is applied to the whole botContainer element and all its children including
+         buttons, bot and user generated text. Must be called after the DOM is in 
+         place, ie. in an onMount async function. This is done in a js function 
+         to enable botConfig file to set cosmetics.
+       */
+    	function setBotSettings(botSettings = {}) {
+    		const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
+
+    		// shadowRoot only accessible via parent element.
+    		const el = shadowRoot.getElementById("botShadowTree");
+
+    		if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
+    		el.style.setProperty("--primary-color", botSettings.primaryColor);
+    		el.style.setProperty("--secondary-color", botSettings.secondaryColor);
+    		el.style.setProperty("--hover-color", botSettings.hoverColor);
+    		el.style.setProperty("--container-color", botSettings.containerBg);
+    		el.style.setProperty("--container-border-color", botSettings.containerBorderBg);
+    		el.style.fontFamily = botSettings.customerFont;
+    	}
 
     	/***************** DOM EVENT handlers ***************/
     	/* Handle user clicking button on a single reply ask */
@@ -9260,7 +9300,7 @@ pageSupportBotTracker() to you global namespace.`);
     		try {
     			parseTextInput(userText);
     		} catch(e) {
-    			$$invalidate(7, inputError = e);
+    			$$invalidate(8, inputError = e);
     			console.log(e.stack);
     		}
     	}
@@ -9277,28 +9317,30 @@ pageSupportBotTracker() to you global namespace.`);
 
     	function select_change_handler() {
     		selectedReplyIndex = select_value(this);
-    		$$invalidate(5, selectedReplyIndex);
+    		$$invalidate(6, selectedReplyIndex);
     	}
 
     	const click_handler_2 = () => singleReplyClick(replyOptions[selectedReplyIndex], selectedReplyIndex);
 
     	function input_input_handler() {
     		userText = this.value;
-    		$$invalidate(6, userText);
+    		$$invalidate(7, userText);
     	}
 
     	const keyup_handler = e => enterKeyOnInput(e);
-    	const click_handler_3 = () => $$invalidate(4, showReplyOptions = true);
+    	const click_handler_3 = () => $$invalidate(5, showReplyOptions = true);
 
     	$$self.$$set = $$props => {
-    		if ('propBotConfig' in $$props) $$invalidate(18, propBotConfig = $$props.propBotConfig);
-    		if ('waitForStartNewConversation' in $$props) $$invalidate(19, waitForStartNewConversation = $$props.waitForStartNewConversation);
+    		if ('waitForStartNewConversation' in $$props) $$invalidate(0, waitForStartNewConversation = $$props.waitForStartNewConversation);
+    		if ('propBotConfig' in $$props) $$invalidate(19, propBotConfig = $$props.propBotConfig);
     		if ('getConfigFromRemote' in $$props) $$invalidate(20, getConfigFromRemote = $$props.getConfigFromRemote);
     		if ('localStorageKey' in $$props) $$invalidate(21, localStorageKey = $$props.localStorageKey);
-    		if ('showUnfriendlyError' in $$props) $$invalidate(0, showUnfriendlyError = $$props.showUnfriendlyError);
+    		if ('botShadowHostId' in $$props) $$invalidate(22, botShadowHostId = $$props.botShadowHostId);
+    		if ('showUnfriendlyError' in $$props) $$invalidate(1, showUnfriendlyError = $$props.showUnfriendlyError);
     	};
 
     	return [
+    		waitForStartNewConversation,
     		showUnfriendlyError,
     		completedRounds,
     		replyOptions,
@@ -9318,10 +9360,11 @@ pageSupportBotTracker() to you global namespace.`);
     		handleTextInput,
     		enterKeyOnInput,
     		propBotConfig,
-    		waitForStartNewConversation,
     		getConfigFromRemote,
     		localStorageKey,
+    		botShadowHostId,
     		init,
+    		startNewConversation,
     		click_handler,
     		click_handler_1,
     		select_change_handler,
@@ -9343,12 +9386,14 @@ pageSupportBotTracker() to you global namespace.`);
     			create_fragment$1,
     			safe_not_equal,
     			{
-    				propBotConfig: 18,
-    				waitForStartNewConversation: 19,
+    				waitForStartNewConversation: 0,
+    				propBotConfig: 19,
     				getConfigFromRemote: 20,
     				localStorageKey: 21,
-    				showUnfriendlyError: 0,
-    				init: 22
+    				botShadowHostId: 22,
+    				showUnfriendlyError: 1,
+    				init: 23,
+    				startNewConversation: 24
     			},
     			null,
     			[-1, -1]
@@ -9356,7 +9401,11 @@ pageSupportBotTracker() to you global namespace.`);
     	}
 
     	get init() {
-    		return this.$$.ctx[22];
+    		return this.$$.ctx[23];
+    	}
+
+    	get startNewConversation() {
+    		return this.$$.ctx[24];
     	}
     }
 
@@ -9368,7 +9417,7 @@ pageSupportBotTracker() to you global namespace.`);
     	return {
     		c() {
     			div = element("div");
-    			attr(div, "id", "botShadowHost");
+    			attr(div, "id", /*botShadowHostId*/ ctx[0]);
     		},
     		m(target, anchor) {
     			insert(target, div, anchor);
@@ -9385,15 +9434,20 @@ pageSupportBotTracker() to you global namespace.`);
     const CSS_FILE = './page-support-bot-bundle.css';
 
     function instance($$self, $$props, $$invalidate) {
+    	let { waitForStartNewConversation = false } = $$props;
     	let { botConfig = null } = $$props;
     	let { getConfigFromRemote = false } = $$props;
     	let { localStorageKey } = $$props;
     	let { cssFileURI } = $$props;
-    	let { waitForStartNewConversation = false } = $$props;
 
     	/************ variables used in the UI/DOM **********/
     	// reference to BotConversationUI.svelte component. set in init()
     	let botConversationUI;
+
+    	// element id that Bot.svelte and BotConversationUI use to perform 
+    	// operations against the shadowDOM/shadowRoot. Needs to be unique per
+    	// bot so we weave in the key for that, enabling > 1 bot per parent page.
+    	const botShadowHostId = `botShadowHost-${localStorageKey}`;
 
     	/********* Lifecycle Event handling *************/
     	onMount(() => {
@@ -9404,24 +9458,25 @@ pageSupportBotTracker() to you global namespace.`);
     	// reference to startNewConversation
     	function init() {
     		// create shadowRoot
-    		const parent = document.getElementById("botShadowHost");
+    		const parent = document.getElementById(`botShadowHost-${localStorageKey}`);
 
     		const shadow = parent.attachShadow({ mode: "open" });
 
     		// add link element that loads css to shadowDOM Tree.
-    		loadCSS(shadow);
+    		const link = loadCSS(shadow);
+
+    		// attach BotConversationUI component when stylesheet loaded
+    		link.onload = attachNewBotUI(shadow);
     	}
 
-    	// load CSS and attach to el. 
+    	// load CSS and attach to el. Return link to the stylesheet.
     	function loadCSS(el) {
     		const link = document.createElement('link');
     		link.rel = 'stylesheet';
     		link.type = 'text/css';
     		link.href = cssFileURI || CSS_FILE;
     		el.appendChild(link);
-
-    		// attach BotConversationUI component when stylesheet loaded
-    		link.onload = attachNewBotUI(el);
+    		return link;
     	}
 
     	// instantiate component and attach to shadowDOM Tree after css loaded
@@ -9429,38 +9484,43 @@ pageSupportBotTracker() to you global namespace.`);
     		botConversationUI = new BotConversationUI({
     				target,
     				props: {
-    					waitForStartNewConversation,
     					localStorageKey,
     					getConfigFromRemote,
-    					propBotConfig: botConfig
+    					propBotConfig: botConfig,
+    					waitForStartNewConversation,
+    					botShadowHostId
     				}
     			});
     	}
 
     	/***************** UI functions ***************/
-    	// pass-thru that just calls the function of the same name in
-    	// BotConversationUI.svelte.
-    	function startNewConversation() {
-    		// pass in botConfig, which might be null. the second argument sets
-    		// startNewConversation in BotConversationUI to true, triggering a new
-    		// conversation even if an old one is on progress.
-    		botConversationUI.init(botConfig, true);
+    	// this function is exported so parent sites like publisher can call it and
+    	// initiate a new conversation (resetting an old one if ongoing). 
+    	// Args:
+    	//   newBotConfig: OPTIONAL: instance of botConfig that is used instead of
+    	//   the prop botConfig if provided.  Used by publisher to run a config 
+    	//   generated by the user without reloading the whole component. 
+    	function startNewConversation(newBotConfig = null) {
+    		console.log('run() called in BOt');
+    		if (newBotConfig === null && botConfig === null) throw new Error(`No botConfig found in startNewConversation(): no prop passed in for botconfig and no argment in the function.`);
+    		botConversationUI.startNewConversation(newBotConfig || botConfig, true);
     	}
 
     	$$self.$$set = $$props => {
-    		if ('botConfig' in $$props) $$invalidate(0, botConfig = $$props.botConfig);
-    		if ('getConfigFromRemote' in $$props) $$invalidate(1, getConfigFromRemote = $$props.getConfigFromRemote);
-    		if ('localStorageKey' in $$props) $$invalidate(2, localStorageKey = $$props.localStorageKey);
-    		if ('cssFileURI' in $$props) $$invalidate(3, cssFileURI = $$props.cssFileURI);
-    		if ('waitForStartNewConversation' in $$props) $$invalidate(4, waitForStartNewConversation = $$props.waitForStartNewConversation);
+    		if ('waitForStartNewConversation' in $$props) $$invalidate(1, waitForStartNewConversation = $$props.waitForStartNewConversation);
+    		if ('botConfig' in $$props) $$invalidate(2, botConfig = $$props.botConfig);
+    		if ('getConfigFromRemote' in $$props) $$invalidate(3, getConfigFromRemote = $$props.getConfigFromRemote);
+    		if ('localStorageKey' in $$props) $$invalidate(4, localStorageKey = $$props.localStorageKey);
+    		if ('cssFileURI' in $$props) $$invalidate(5, cssFileURI = $$props.cssFileURI);
     	};
 
     	return [
+    		botShadowHostId,
+    		waitForStartNewConversation,
     		botConfig,
     		getConfigFromRemote,
     		localStorageKey,
     		cssFileURI,
-    		waitForStartNewConversation,
     		startNewConversation
     	];
     }
@@ -9470,17 +9530,17 @@ pageSupportBotTracker() to you global namespace.`);
     		super();
 
     		init(this, options, instance, create_fragment, safe_not_equal, {
-    			botConfig: 0,
-    			getConfigFromRemote: 1,
-    			localStorageKey: 2,
-    			cssFileURI: 3,
-    			waitForStartNewConversation: 4,
-    			startNewConversation: 5
+    			waitForStartNewConversation: 1,
+    			botConfig: 2,
+    			getConfigFromRemote: 3,
+    			localStorageKey: 4,
+    			cssFileURI: 5,
+    			startNewConversation: 6
     		});
     	}
 
     	get startNewConversation() {
-    		return this.$$.ctx[5];
+    		return this.$$.ctx[6];
     	}
     }
 

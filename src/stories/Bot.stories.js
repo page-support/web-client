@@ -32,7 +32,7 @@ export const diagnosticConversationOne = () => ({
   props: { botConfig: diagnostic_test,
            localStorageKey: 'diagConvOne',
            // test non-default css file uri
-           cssFileURI: './page-support-bot-bundle.css'
+           cssFileURI: 'page-support-bot-bundle.css'
   }
 });
 
