@@ -98,6 +98,11 @@ scenarios and how to use them from a parent site.
   // the dist directory
   const CSS_FILE = './page-support-bot-bundle.css';
 
+  // element id that Bot.svelte and BotConversationUI use to perform 
+  // operations against the shadowDOM/shadowRoot. Needs to be unique per
+  // bot so we weave in the key for that, enabling > 1 bot per parent page.
+  const botShadowHostId = `botShadowHost-${localStorageKey}`;
+
   /********* Lifecycle Event handling *************/
 
   onMount(() => {
@@ -108,7 +113,7 @@ scenarios and how to use them from a parent site.
   // reference to startNewConversation
   function init() {
     // create shadowRoot
-    const parent = document.getElementById("botShadowHost");
+    const parent = document.getElementById(`botShadowHost-${localStorageKey}`);
     const shadow = parent.attachShadow({ mode: "open" });
 
     // add link element that loads css to shadowDOM Tree.
@@ -139,7 +144,8 @@ scenarios and how to use them from a parent site.
         localStorageKey: localStorageKey,
         getConfigFromRemote: getConfigFromRemote,
         propBotConfig: botConfig,
-        waitForStartNewConversation: waitForStartNewConversation
+        waitForStartNewConversation: waitForStartNewConversation,
+        botShadowHostId: botShadowHostId
       },
     });
   }
@@ -163,4 +169,4 @@ scenarios and how to use them from a parent site.
 
 </script>
 
-<div id="botShadowHost" />
+<div id="{botShadowHostId}" />

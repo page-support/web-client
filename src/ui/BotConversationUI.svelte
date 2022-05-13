@@ -23,6 +23,8 @@
   export let propBotConfig;
   export let getConfigFromRemote = false;
   export let localStorageKey;
+  export let botShadowHostId;
+
   // show errors in the Bot UI, set to false to only log with console.error
   export let showUnfriendlyError = true;
 
@@ -72,8 +74,6 @@
   // displayed in the if block
   let conversation = null;
 
-  /********* Constants ******************/
-
   // Currently the page.support publisher is able to create botConfigs
   // for multiple frames. However this Bot.svelte component does
   // not support multiple frames - it lacks a way to for the user to
@@ -84,7 +84,12 @@
   // a startFrameId property to tell us where to start. currentFrame is
   // set at botConfig load time in loadBotConfig();
   let currentFrame = null;
+
+  /********* Constants ******************/
+
   
+  
+
 
   /*********** Lifecycle functions ************/
 
@@ -290,8 +295,8 @@
     let selector = `#conversationHistory ul > li img:first-child, 
                       #currentAsk ul > li img:first-child`;
 
-    const shadowRt = document.querySelector("#botShadowHost").shadowRoot;
-    const imgs = shadowRt.querySelectorAll(selector);
+    const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
+    const imgs = shadowRoot.querySelectorAll(selector);
 
     if (imgs.length > 0) {
       // If images appear as first children in a list item,
@@ -315,9 +320,9 @@
        to enable botConfig file to set cosmetics.
      */
   function setBotSettings(botSettings = {}) {
-    const parent = document.getElementById("botShadowHost");
+    const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
     // shadowRoot only accessible via parent element.
-    const el = parent.shadowRoot.getElementById("botShadowTree");
+    const el = shadowRoot.getElementById("botShadowTree");
     if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
     el.style.setProperty("--primary-color", botSettings.primaryColor);
     el.style.setProperty("--secondary-color", botSettings.secondaryColor);

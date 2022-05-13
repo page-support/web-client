@@ -16,9 +16,6 @@ import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.su
 export const runBotAfterLoad = () => ({
   Component: RunBotTestHarness,
   props: {
-    botConfig: diagnostic_test,
-    getConfigFromRemote: false,
-    localStorageKey: 'test1',
-    waitForStartNewConversation: true
+    botConfig: diagnostic_test
   }
 });

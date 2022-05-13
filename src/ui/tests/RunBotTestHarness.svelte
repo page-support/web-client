@@ -14,23 +14,50 @@ the function is called.
 
 <script>
   export let botConfig;
-  let botBinding;
+  let botBindingOne;
+  let botBindingTwo;
 
+  let previewBot = true;
   import Bot from "../Bot.svelte";
 
-  function run() {
-    botBinding.startNewConversation(botConfig);
+  function runOne() {
+    botBindingOne.startNewConversation(botConfig);
+    previewBot = true;
+  }
+
+  function runTwo() {
+    botBindingTwo.startNewConversation(botConfig);
+    previewBot = false;
   }
 
 
 </script>
 
+
+<!-- this mimic's publisher's parser/BotPreview.svelte use of 
+previewBot that passes in the botConfig argument in the call
+to startNewConversation() -->
 <Bot
-  botConfig={botConfig}
-  bind:this={botBinding}
+  botConfig={null}
+  bind:this={botBindingOne}
   getConfigFromRemote={false}
   waitForStartNewConversation={true}
   localStorageKey={'key'}
 />
 
-<button on:click={run}>Run</button>
+
+<button on:click={runOne}>Run with BotConfig arg in startNewConversation</button>
+<br>
+<hr>
+<br>
+<button on:click={runTwo}>Run with botConfig in prop</button>
+
+<!-- this mimic's publisher's parser/Preview.svelte use of 
+showGuideBot that uses the botConfig argument in the prop -->
+<Bot
+  botConfig={botConfig}
+  bind:this={botBindingTwo}
+  getConfigFromRemote={false}
+  waitForStartNewConversation={true}
+  localStorageKey={'key2'}
+/>
