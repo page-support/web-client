@@ -38,7 +38,8 @@ the function is called.
 
 <!-- this mimic's publisher's parser/BotPreview.svelte use of 
 previewBot that passes in the botConfig argument in the call
-to startNewConversation(botConfig) -->
+to startNewConversation(botConfig) Since waitForStartNewConversation
+is true, when page is refreshed, will revert to a blank page -->
 <Bot
   botConfig={null}
   bind:this={botBindingOne}
