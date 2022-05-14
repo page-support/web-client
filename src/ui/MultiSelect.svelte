@@ -20,18 +20,20 @@
 <script>
 
   import { createEventDispatcher } from "svelte";
-  import { clickOutside } from "./clickOutside.js";
 
   const dispatch = createEventDispatcher();
 
-  // to show in the upper list of selected replies.
-  export let selectedReplyIndexes = [];
+  // id of the node we are attached to set in Bot.svelte
+  export let botShadowHostId;
 
   // Array of strings user can select from that comes from Bot.svelte
   export let replyOptions;
 
   // UI toggles
   let showOptions = false; // Boolean: show/hide replyOptions: open == true,
+
+  // to show in the upper list of selected replies.
+  let selectedReplyIndexes = [];
 
   // used to track which replyOptions have already been selected so the whole
   // list of replyOptions can highlight the selected ones.
@@ -86,6 +88,36 @@
   /* Close multiselect options list when user clicks outside of the list */
   function handleClickOutside(event) {
     showOptions = false; // hide the options list
+  }
+
+
+  /* clickOutside()
+   * Dispatch event on click outside of the DOM element in the argument.
+   * Imported into any component that needs to open/close
+   * a modal, select box or other ui element when the user clicks
+   * outside of it
+   * Args: node is the html node we want to detect clicks outside of
+   * Derived from https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
+   */
+  function clickOutside(node) {
+    
+    const handleClick = event => {
+      if (node && !node.contains(event.target) && !event.defaultPrevented) {
+        node.dispatchEvent(
+          new CustomEvent('click_outside', node)
+        )
+      }
+    }
+
+    // To select el in the shadowRoot must select off the shadowRoot not document
+    const shadowRt = document.getElementById(botShadowHostId).shadowRoot;
+    shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
+    
+    return {
+      destroy() {
+        shadowRt.getElementById("pageBotContainer").removeEventListener('click', handleClick, true);
+      }
+    }
   }
 
 </script>

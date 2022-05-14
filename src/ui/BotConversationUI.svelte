@@ -605,7 +605,11 @@
                 </button>
               </div>
             {:else if replyType === slotTypeEnum.multiple}
-              <MultiSelect on:message={multiReplySubmit} {replyOptions} />
+              <MultiSelect 
+                on:message={multiReplySubmit} 
+                replyOptions={replyOptions}  
+                botShadowHostId={botShadowHostId}
+              />
             {:else if replyType === "freeTextEntry"}
               <!-- unused now, keep for free text entry sent to backend such as
                     getting user's address or a search field -->
