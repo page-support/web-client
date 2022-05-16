@@ -4435,6 +4435,10 @@ function getNextSlot(localStorageKey) {
 
   if (nextSlot === undefined) {
     // If no slot was found we're at the end of the conversation.
+    analyticsTracker('page_support_bot_ended_conversation',
+                     { full_conversation: conversation.completedRounds },
+                     conversation );
+
     return {
       completedRounds: clone$1(conversation.completedRounds),
       replyType: slotTypeEnum.endConversation,
@@ -4444,7 +4448,7 @@ function getNextSlot(localStorageKey) {
   } else {
     // if slot not already there, e.g. because user refreshed page, add slot
     if (conversation.completedRounds.length === 0 ||
-        (conversation.completedRounds.length > 0 && 
+         (conversation.completedRounds.length > 0 && 
          nextSlot.name !== conversation.completedRounds
            [conversation.completedRounds.length - 1].slot.name) ) {
       // create and save the slot portion of the round in the conversation tracker
@@ -4455,8 +4459,12 @@ function getNextSlot(localStorageKey) {
       });
       conversation.completedRounds.push(round);
       saveConversation(conversation, localStorageKey);
+      analyticsTracker(`ask_name_${round.slot.name}`, 
+                       {ask: round.slot.ask},
+                       conversation
+                       );
     }
-
+   
     // return what UI needs to present next ask to user. Clone it so UI specific
     // transformations don't affect the recorded conversation. 
     return {
@@ -4592,21 +4600,15 @@ function returnFirstTrueSlotTrigger(slotCandidates, repliesAsProps) {
     // Persist the conversation
     saveConversation(conversation, localStorageKey);
 
-    // call the global namespace function that publishers may use for logging.
-    if (conversation.botSettings.trackUserReplies) {
-      try {
-        pageSupportBotTracker('replyClick', {
-          ask: round.slot.ask,
-          userReplyValues: round.userReplyValues,
-          userReplyIndexes: round.userReplyIndexes,
-          ending: round.ending }
-        );
-      } catch (e) {
-        console.error(`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
-See the documentation and make sure you've added a function called 
-pageSupportBotTracker() to you global namespace.`);
-      }
-    }
+    analyticsTracker('page_support_bot_reply_click', 
+          { ask: round.slot.ask,
+            userReplyValues: round.userReplyValues,
+            userReplyIndexes: round.userReplyIndexes,
+            ending: round.ending 
+          },
+          conversation
+          );
+
   }
 
 
@@ -4639,6 +4641,28 @@ pageSupportBotTracker() to you global namespace.`);
     });
     return returnObj;
   }
+
+
+/* analyticsTracker()
+ * Gather conversation parameters and call the global
+ * analytics tracker function if customer has set it up.
+ * Raise error to console if the tracker function is not
+ * present in parent site.
+ */
+function analyticsTracker(eventName, parameters, conversation) {
+
+  // call the global namespace function that publishers may use for logging.
+  if (conversation.botSettings.trackUserReplies) {
+    try {
+      pageSupportBotTracker(eventName, parameters);
+    } catch (e) {
+      console.error(
+`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
+See the documentation and make sure you've added a function called 
+pageSupportBotTracker() to your  global namespace.`);
+    }
+  }
+}
 
 /**
  * marked - a markdown parser

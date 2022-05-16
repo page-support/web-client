@@ -217,6 +217,49 @@ If you make modifications to the Bot then want to deploy the changes to your web
 - index.mjs is an ES6 module file for importation into your build.   
 - index.min.js is a IIFE file for websites that do not use a modern build
 
+### User engagement tracking
+A key part of measuring the success of any type of automation is measuring user engagement. You want to know if users are using the automation, and if they are achieving their goals when they use it.
+Page.support bots will integrate with any user engagement measurement platform that can receive event from the bot, such as Google Analytics. You don't need a new event tracking system, you can use the same one you are using on the bot's parent site (your main website). Bot will send events to it so you can see all your user measurements in one place.
+
+To configure event tracking set the `trackUserReplies` property in your botConfig to 'true'. This property defaults to false. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. 
+
+Second, add `pageSupportBotTracker()` to your parent site's global javascript namespace. This allows you to use your existing event tracking service's function calls to send the data to your event tracking service. The contents of `pageSupportBotTracker()` will vary based on the user analytics service you are using. For example if you are using Google Analytic's GA4 the syntax would be:
+
+```
+  // in your website's <head> tag on all pages where the bot appears
+  <script>
+
+    function pageSupportBotTracker(eventName, parameters) {
+      gtag('event', eventName, parameters); 
+    }
+
+  </script>
+```
+
+The function is called with two arguments, `eventName` and `parameters`. `eventName` is a String uniquely identifying the event your bot will report. Your bot will supply the event name, for example `reply_click` is the name of the event reported when a user selects a reply in the bot. `parameters` is a javascript object supplied by the bot with data about the reply. It will include properties that identify the question the bot asked, the user reply, and the status of the conversation. For example: 
+
+```
+{
+  "ask": "### Router models\nWhat type of router do you have?\n![Router models](/assets/routerModels.png)",
+  "userReplyValues": [
+    "Brand Beta model Z44"
+  ],
+  "userReplyIndexes": [
+    2
+  ],
+  "ending": "completed"
+}
+```
+
+The bot will only call `pageSupportBotTracker()` when it receives a reply from the user. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
+
+Depending on the user analytics service you are using, you may have to translate the eventName and parameter arguments into some other form before sending to your tracking service. With Google Analytics they are the second and third arguments to their gtag function. Note that with GA4 you also have to do some configuration in your Google Analytics account to report custom events.
+
+The script above assumes you already have GA4's tracking setup in another script tag. Substitute the gtag(...) function for whatever function call your analytics system requires.
+
+Depending on your requirements, you might want to setup a new tracking "site" for the bot, separate from the rest of your website. The steps would be the same as above, except when you call your tracking service you'd use a different tracking id.
+
+
 ### Server integration and Data Persistence
 
 By default Bot only relies on the botConfig to drive its behavior so doesn't need to talk to a server. However if you want to personalize Bot's behavior, for example by loading user data, we will be adding simple integrations with arbitrary URLs and APIs in the next release. Those integrations will also enable saving user replies to an API on your server. 
