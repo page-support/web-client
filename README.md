@@ -251,7 +251,13 @@ The function is called with two arguments, `eventName` and `parameters`. `eventN
 }
 ```
 
-The bot will only call `pageSupportBotTracker()` when it receives a reply from the user. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
+The bot will call `pageSupportBotTracker()` when it asks the user a question and when it receives a reply. 
+
+When the bot asks a question, it will use the event name `page_support_bot_ask_name_${round.slot.name}`
+
+For user replies, it will use the event name `page_support_bot_reply_click`. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
+
+At the end of the conversation, if the conversation ended without the user abandoning it midway, an end of conversation session history is sent with the event name `page_support_bot_ended_conversation`
 
 Depending on the user analytics service you are using, you may have to translate the eventName and parameter arguments into some other form before sending to your tracking service. With Google Analytics they are the second and third arguments to their gtag function. Note that with GA4 you also have to do some configuration in your Google Analytics account to report custom events.
 

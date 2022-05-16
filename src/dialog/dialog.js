@@ -240,7 +240,7 @@ function getNextSlot(localStorageKey) {
       });
       conversation.completedRounds.push(round);
       saveConversation(conversation, localStorageKey);
-      analyticsTracker(`ask_name_${round.slot.name}`, 
+      analyticsTracker(`page_support_bot_ask_name_${round.slot.name}`, 
                        {ask: round.slot.ask},
                        conversation
                        );
