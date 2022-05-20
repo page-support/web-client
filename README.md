@@ -282,3 +282,16 @@ The bot client and the botConfig file it uses must be on the same major version.
 
 ### Browser support
 This package supports most modern browsers including Chrome, Safari, Edge and Firefox. It does not support IE.
+
+### Package maintainer notes - updating Bot
+To update to a new version of Bot
+# bot root directory
+0. test in storybook, run automated tests, run `npm run build` to see if there are any errors
+1. increment the bot version number in package.json
+2. update CHANGELOG.md
+3. update documentation 
+4. update README in bot 
+5. git commit ..
+6. git push
+7. npm run build # to create new .js and .css files for iife use case
+8. npm publish # to npm registry
