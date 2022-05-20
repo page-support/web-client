@@ -195,6 +195,9 @@ Any static assets referred to in your bot's markdown, such as image tags, must b
 
 Don't forget to add the [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file in this repository to the public folder of your web server as described previously.
 
+### CSS encapsulation
+When you add Bot to your website, its CSS is encapsulated so that your website's global styles do not affect it, and its styles won't affect your website. Encapsulation is achieved by using [ShadowDOM](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM) All of the styles, and nearly all the Bot's UI is attached to the DOM under a shadow host. The shadow host is an empty div added by the Bot component, with the actual Bot html and css attached underneath it. 
+
 
 ### Conversation initialization
 When your user first loads the page, the Bot will display and start a new conversation by default. Bot will maintain conversation state across page reloads in a tab by using sessionStorage. Closing the tab will end the conversation. 
@@ -217,13 +220,12 @@ If you make modifications to the Bot then want to deploy the changes to your web
 - index.mjs is an ES6 module file for importation into your build.   
 - index.min.js is a IIFE file for websites that do not use a modern build
 
-### User engagement tracking
-A key part of measuring the success of any type of automation is measuring user engagement. You want to know if users are using the automation, and if they are achieving their goals when they use it.
-Page.support bots will integrate with any user engagement measurement platform that can receive event from the bot, such as Google Analytics. You don't need a new event tracking system, you can use the same one you are using on the bot's parent site (your main website). Bot will send events to it so you can see all your user measurements in one place.
+### User engagement tracking and website analytics
+A key part of measuring the success of any type of automation is measuring user engagement. You want to know if users are using the automation, and if they are achieving their goals when they use it. Page.support bots will integrate with any user engagement measurement platform that can receive events from the bot, such as Google Analytics. You don't need a new event tracking system, you can use the same one you are using on the bot's parent site (your main website). Bot will send events to it so you can see all your user measurements in one place.
 
-To configure event tracking set the `trackUserReplies` property in your botConfig to 'true'. This property defaults to false. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. 
+To configure event tracking set the `trackUserReplies` property in your botConfig to 'true'. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. 
 
-Second, add `pageSupportBotTracker()` to your parent site's global javascript namespace. This allows you to use your existing event tracking service's function calls to send the data to your event tracking service. The contents of `pageSupportBotTracker()` will vary based on the user analytics service you are using. For example if you are using Google Analytic's GA4 the syntax would be:
+Second, add `pageSupportBotTracker()` to your parent site's global javascript namespace. This allows you to use your existing event tracking service's function calls to send the data to your event tracking service. The contents of `pageSupportBotTracker()` will vary based on the user analytics service you are using. For example if you are using Google Analytics GA4 the syntax would be:
 
 ```
   // in your website's <head> tag on all pages where the bot appears
@@ -253,11 +255,12 @@ The function is called with two arguments, `eventName` and `parameters`. `eventN
 
 The bot will call `pageSupportBotTracker()` when it asks the user a question and when it receives a reply. 
 
-When the bot asks a question, it will use the event name `page_support_bot_ask_name_${round.slot.name}`
+There are three eventNames reported:
+* When the bot asks a question, it will use the event name `page_support_bot_ask_name_${round.slot.name}`
+* When a user replies, it will use the event name `page_support_bot_reply_click`. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
+* At the end of the conversation, if the conversation ended without the user abandoning it midway, a conversation session history is sent with the event name `page_support_bot_ended_conversation` This allows you to examine specific user sessions that are otherwise not available when collating individual events like with the prior two event types. 
 
-For user replies, it will use the event name `page_support_bot_reply_click`. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
-
-At the end of the conversation, if the conversation ended without the user abandoning it midway, an end of conversation session history is sent with the event name `page_support_bot_ended_conversation`
+Note that with all these events, user input is being sent server side in the userReplyValues property. Take care to ensure user PII is properly handled if there is any information uniquely identifying individuals. You can remove anything you don't want to send to your analytics service by adding a filter to the `pageSupportBotTracker()` function.
 
 Depending on the user analytics service you are using, you may have to translate the eventName and parameter arguments into some other form before sending to your tracking service. With Google Analytics they are the second and third arguments to their gtag function. Note that with GA4 you also have to do some configuration in your Google Analytics account to report custom events.
 
@@ -276,3 +279,6 @@ saveConversation() in state.js.
 
 ### Versioning and Compatibility
 The bot client and the botConfig file it uses must be on the same major version. The version of the bot client is the same as the version in package.json, and there's a check in state.js's versionCompatible() that will surface a user-visible error if bot reads a botConfig that's not compatible. botConfig files also have a version property that is used to determine compatibility. If you are adding the bot client to your website with your own build pipeline,ensure that the botConfigVersion constant in state.js is set to the same major version as the botConfig files you plan to use with the client. (and of course make whatever updates to the code you need to maintain compatibility) If you are adding bot client by copying in the index.min.js file the version will already be set by the rollup build process.
+
+### Browser support
+This package supports most modern browsers including Chrome, Safari, Edge and Firefox. It does not support IE.

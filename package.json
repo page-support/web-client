@@ -8,10 +8,10 @@
     "web client",
     "automation"
   ],
-  "homepage": "https://github.com/page-support/bot#readme",
+  "homepage": "https://github.com/page-support/web-client",
   "repository": {
     "type": "git",
-    "url": "https://github.com/page-support/Bot.git"
+    "url": "https://github.com/page-support/web-client.git"
   },
   "license": "MIT",
   "version": "2.0.4",

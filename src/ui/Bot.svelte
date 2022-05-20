@@ -168,4 +168,4 @@ scenarios and how to use them from a parent site.
 
 </script>
 
-<div id="{botShadowHostId}" />
+<div id="{botShadowHostId}" ></div>
