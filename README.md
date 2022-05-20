@@ -96,39 +96,107 @@ import Bot from "page-support-bot";
 import botConfig from "/your-path/to/page.support.botconfig.js"
 ```
 
-Bot imports the stylesheet it needs from the node_modules directory it was 
-installed into: `dist/page-support-bot-bundle.css`. 
-That css file is imported via an @import command in the <style> section of Bot.svelte. 
-Your bundler should compile that file along with the rest of your site's css 
-into one file so no <link> to that file is needed.
+Bot imports the stylesheet it needs from the node_modules directory it was installed into: `dist/page-support-bot-bundle.css`. That css file is imported via an @import command in the <style> section of BotConversationUI.svelte. Your bundler must compile that file along with the rest of your site's css into one file so no <link> to that file is needed.
 
-In your HTML we can now add the Bot component
+Next add the Bot component to your page's HTML
 
 ```
 <Bot propBotConfig={botConfig} 
      bind:this={botBinding} 
-     localStorageKey={localStorageKey} 
+     localStorageKey={localStorageKey}
+     cssFileURI={"path/to/the/page-support-bot-bundle.css} 
 /> 
+```
+
+Or, add attach it to the DOM with javascript:
+
+```
+import botConfig from "./page.support.botconfig.js";
+
+// IIFE creates bot and attaches it to the DOM
+(function () {
+
+// Set to the id of the DOM element you want the bot attached to
+const botDOMId = 'netDiaBot';  
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    // The DOM element the Bot will be attached to
+    el = document.getElementById(botDOMId);
+    if (el) {
+      // PageSupportBot is the name of the var exported by page.support.min.js 
+      // Bot is the constructor it exports.   
+      const bot = new PageSupportBot.Bot({
+        target: el,
+        props: {
+          propBotConfig: botConfig,
+          localStorageKey: 'botNumberOne',
+          cssFileURI: 'page-support-bot-bundle.css'
+        }
+      });
+    } else {
+      console.log(`page.support bot setup script failed to find "${botDOMId}" in DOM`);
+    } 
+})
+
+  
+})();  // iife closure
 ```
 
 Bot supports the following props:
 
-* botConfig is the js object imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
+REQUIRED
+* localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
+
+OPTIONAL (required in some circumstances)
+* cssFileURI: URI where the bot's css file is located. The value is used to set the href property of a link that loads the stylesheet. This allows the parent site flexibility about where to put the css file. If not provided, the bot uses the CSS_FILE constant which equals './page-support-bot-bundle.css'. The defaults works if the css file is in the same directory as the js executables. That will be true if bot is imported from an npm package - since both js and css are in the dist folder. 
+* botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
 * propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
-* localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
-* waitForStartNewConversation is an optional Boolean that defaults to false. If set to true, it tells this component to display nothing until startNewConversation() is called. This allows <Bot> to be added to the DOM without rendering anything. Its binding will be available, which lets the containing site call startNewConversation.
+* waitForStartNewConversation is an optional boolean which if true will cause bot to display nothing until the startNewConversation() function is called. Use when you want your site to control when the bot activates and displays on a page. Defaults to false, which means the bot will display at page load with the first round of conversation displayed.
 
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 
 
+### Control bot start and botConfig from parent site
+Parent sites might want to control when a bot starts a new conversation, for example with a "Run" button. This button would also restart an existing conversation if one was in progress. You might want to do this without reloading the component. You might also want to pass in a new botConfig when the user clicks "Run" in the parent site. This might be useful for Bot markdown authoring scenarios. For this use case, you'd use code something like this
 
+```
+// in your javascript
+let botBinding;
+
+// runBot() is run by an onClick event 
+function runBot() {
+  botBinding.startNewConversation(botConfig);
+}
+
+// in your html.
+
+
+// By setting waitForStartNewConversation to true bot will display nothing
+// until startNewConversation is called.
+<Bot propBotConfig={null} 
+     bind:this={botBinding}
+     propGetConfigFromRemote={false}
+     localStorageKey={localStoragePreviewBotKey} 
+     waitForStartNewConversation={true} 
+/> 
+
+```
+
+
+### Show / hide bot to save screen real estate
+
+The Parent site can add the bot IIFE or js module to the DOM whenever they want. If the botConfig is being fetched from remote, you might want to load bot after the DOM is loaded, but in a hidden state so it will fetch botConfig and be ready to display. When you want to display the bot, e.g. if a user clicks a button to interact with the bot, unhide the HTML element the bot resides under.  
 
 
 ### Add static assets - images and css
 Any static assets referred to in your bot's markdown, such as image tags, must be uploaded to the URLs you added to the markdown. At this time page.support doesn't maintain any static asset servers, so add static assets to your storage bucket or website public directory.  
 
 Don't forget to add the [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file in this repository to the public folder of your web server as described previously.
+
+### CSS encapsulation
+When you add Bot to your website, its CSS is encapsulated so that your website's global styles do not affect it, and its styles won't affect your website. Encapsulation is achieved by using [ShadowDOM](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM) All of the styles, and nearly all the Bot's UI is attached to the DOM under a shadow host. The shadow host is an empty div added by the Bot component, with the actual Bot html and css attached underneath it. 
 
 
 ### Conversation initialization
@@ -152,6 +220,55 @@ If you make modifications to the Bot then want to deploy the changes to your web
 - index.mjs is an ES6 module file for importation into your build.   
 - index.min.js is a IIFE file for websites that do not use a modern build
 
+### User engagement tracking and website analytics
+A key part of measuring the success of any type of automation is measuring user engagement. You want to know if users are using the automation, and if they are achieving their goals when they use it. Page.support bots will integrate with any user engagement measurement platform that can receive events from the bot, such as Google Analytics. You don't need a new event tracking system, you can use the same one you are using on the bot's parent site (your main website). Bot will send events to it so you can see all your user measurements in one place.
+
+To configure event tracking set the `trackUserReplies` property in your botConfig to 'true'. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. 
+
+Second, add `pageSupportBotTracker()` to your parent site's global javascript namespace. This allows you to use your existing event tracking service's function calls to send the data to your event tracking service. The contents of `pageSupportBotTracker()` will vary based on the user analytics service you are using. For example if you are using Google Analytics GA4 the syntax would be:
+
+```
+  // in your website's <head> tag on all pages where the bot appears
+  <script>
+
+    function pageSupportBotTracker(eventName, parameters) {
+      gtag('event', eventName, parameters); 
+    }
+
+  </script>
+```
+
+The function is called with two arguments, `eventName` and `parameters`. `eventName` is a String uniquely identifying the event your bot will report. Your bot will supply the event name, for example `reply_click` is the name of the event reported when a user selects a reply in the bot. `parameters` is a javascript object supplied by the bot with data about the reply. It will include properties that identify the question the bot asked, the user reply, and the status of the conversation. For example: 
+
+```
+{
+  "ask": "### Router models\nWhat type of router do you have?\n![Router models](/assets/routerModels.png)",
+  "userReplyValues": [
+    "Brand Beta model Z44"
+  ],
+  "userReplyIndexes": [
+    2
+  ],
+  "ending": "completed"
+}
+```
+
+The bot will call `pageSupportBotTracker()` when it asks the user a question and when it receives a reply. 
+
+There are three eventNames reported:
+* When the bot asks a question, it will use the event name `page_support_bot_ask_name_${round.slot.name}`
+* When a user replies, it will use the event name `page_support_bot_reply_click`. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
+* At the end of the conversation, if the conversation ended without the user abandoning it midway, a conversation session history is sent with the event name `page_support_bot_ended_conversation` This allows you to examine specific user sessions that are otherwise not available when collating individual events like with the prior two event types. 
+
+Note that with all these events, user input is being sent server side in the userReplyValues property. Take care to ensure user PII is properly handled if there is any information uniquely identifying individuals. You can remove anything you don't want to send to your analytics service by adding a filter to the `pageSupportBotTracker()` function.
+
+Depending on the user analytics service you are using, you may have to translate the eventName and parameter arguments into some other form before sending to your tracking service. With Google Analytics they are the second and third arguments to their gtag function. Note that with GA4 you also have to do some configuration in your Google Analytics account to report custom events.
+
+The script above assumes you already have GA4's tracking setup in another script tag. Substitute the gtag(...) function for whatever function call your analytics system requires.
+
+Depending on your requirements, you might want to setup a new tracking "site" for the bot, separate from the rest of your website. The steps would be the same as above, except when you call your tracking service you'd use a different tracking id.
+
+
 ### Server integration and Data Persistence
 
 By default Bot only relies on the botConfig to drive its behavior so doesn't need to talk to a server. However if you want to personalize Bot's behavior, for example by loading user data, we will be adding simple integrations with arbitrary URLs and APIs in the next release. Those integrations will also enable saving user replies to an API on your server. 
@@ -162,3 +279,6 @@ saveConversation() in state.js.
 
 ### Versioning and Compatibility
 The bot client and the botConfig file it uses must be on the same major version. The version of the bot client is the same as the version in package.json, and there's a check in state.js's versionCompatible() that will surface a user-visible error if bot reads a botConfig that's not compatible. botConfig files also have a version property that is used to determine compatibility. If you are adding the bot client to your website with your own build pipeline,ensure that the botConfigVersion constant in state.js is set to the same major version as the botConfig files you plan to use with the client. (and of course make whatever updates to the code you need to maintain compatibility) If you are adding bot client by copying in the index.min.js file the version will already be set by the rollup build process.
+
+### Browser support
+This package supports most modern browsers including Chrome, Safari, Edge and Firefox. It does not support IE.

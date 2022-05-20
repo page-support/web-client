@@ -20,18 +20,20 @@
 <script>
 
   import { createEventDispatcher } from "svelte";
-  import { clickOutside } from "./clickOutside.js";
 
   const dispatch = createEventDispatcher();
 
-  // to show in the upper list of selected replies.
-  export let selectedReplyIndexes = [];
+  // id of the node we are attached to set in Bot.svelte
+  export let botShadowHostId;
 
   // Array of strings user can select from that comes from Bot.svelte
   export let replyOptions;
 
   // UI toggles
   let showOptions = false; // Boolean: show/hide replyOptions: open == true,
+
+  // to show in the upper list of selected replies.
+  let selectedReplyIndexes = [];
 
   // used to track which replyOptions have already been selected so the whole
   // list of replyOptions can highlight the selected ones.
@@ -47,7 +49,6 @@
    */
   function select(index) {
     // populate array and trigger reactive display of selected replies
-
     if (!replyObjects[index].selected) {
       // If not previously selected, select it.
 
@@ -61,6 +62,7 @@
     } else {
       remove(index);
     }
+    
   }
 
 
@@ -75,9 +77,6 @@
     // Remove the left border color in the replyObjects lower list
     replyObjects[index].selected = false;
     replyObjects = replyObjects;
-
-    console.log(`removed ${index}`);
-    console.log(selectedReplyIndexes.length);
   }
 
   /* User clicks Save/done button next to single or multi select */
@@ -89,6 +88,36 @@
   /* Close multiselect options list when user clicks outside of the list */
   function handleClickOutside(event) {
     showOptions = false; // hide the options list
+  }
+
+
+  /* clickOutside()
+   * Dispatch event on click outside of the DOM element in the argument.
+   * Imported into any component that needs to open/close
+   * a modal, select box or other ui element when the user clicks
+   * outside of it
+   * Args: node is the html node we want to detect clicks outside of
+   * Derived from https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
+   */
+  function clickOutside(node) {
+    
+    const handleClick = event => {
+      if (node && !node.contains(event.target) && !event.defaultPrevented) {
+        node.dispatchEvent(
+          new CustomEvent('click_outside', node)
+        )
+      }
+    }
+
+    // To select el in the shadowRoot must select off the shadowRoot not document
+    const shadowRt = document.getElementById(botShadowHostId).shadowRoot;
+    shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
+    
+    return {
+      destroy() {
+        shadowRt.getElementById("pageBotContainer").removeEventListener('click', handleClick, true);
+      }
+    }
   }
 
 </script>
@@ -120,10 +149,10 @@
           pr-4"
         id="listbox-option-0"
         role="option"
+        on:click="{() => select(index)}"
         on:mouseenter={() => (replyObj.highlighted = true)}
         on:mouseleave={() => (replyObj.highlighted = false)}
         class:highlightedOption={replyObj.highlighted === true}
-        on:click={() => select(index)}
       >
         <!-- Selected: "font-semibold", Not Selected: "font-normal" -->
         <span
@@ -197,7 +226,7 @@
           <span
             class="text-gray-600 absolute inset-y-0 left-0 flex items-center 
             pl-1.5"
-            on:click={() => remove(selectedReplyIndex)}
+            on:click="{() => remove(selectedReplyIndex)}"
           >
             <svg
               class="fill-current h-6 w-6 "
@@ -230,11 +259,12 @@
     >
       <!-- Heroicon name: solid/selector -->
       <svg
-        class="h-5 w-5 text-gray-400"
+        class="text-gray-400"
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 20 20"
         fill="currentColor"
         aria-hidden="true"
+        style="height: 20px; width: 20px;"
       >
         <path
           fill-rule="evenodd"

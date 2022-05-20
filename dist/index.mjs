@@ -47,9 +47,6 @@ function text(data) {
 function space() {
     return text(' ');
 }
-function empty() {
-    return text('');
-}
 function listen(node, event, handler, options) {
     node.addEventListener(event, handler, options);
     return () => node.removeEventListener(event, handler, options);
@@ -70,6 +67,14 @@ function set_data(text, data) {
 }
 function set_input_value(input, value) {
     input.value = value == null ? '' : value;
+}
+function set_style(node, key, value, important) {
+    if (value === null) {
+        node.style.removeProperty(key);
+    }
+    else {
+        node.style.setProperty(key, value, important ? 'important' : '');
+    }
 }
 function select_option(select, value) {
     for (let i = 0; i < select.options.length; i += 1) {
@@ -102,6 +107,9 @@ function get_current_component() {
     if (!current_component)
         throw new Error('Function called outside component initialization');
     return current_component;
+}
+function onMount(fn) {
+    get_current_component().$$.on_mount.push(fn);
 }
 function afterUpdate(fn) {
     get_current_component().$$.after_update.push(fn);
@@ -406,16 +414,10 @@ const REMOTE_CONFIG_URL = 'TBD';
  * Returns null and logs error if botConfig acquisition or parsing fails.
  * 
  * Args: 
- *   REQUIRED: newConfig is a boolean that defaults to false, 
- *   set to true to force new botConfig to be loaded
  *   REQUIRED: getConfigFromRemote is a bool that tells this function whether 
  *   to try to get a config from remote if its not already there. See the 
  *   scenarios described at top of Bot.svelte for usage.
  *   REQUIRED: localStorageKey is a unique per bot string
- *   REQUIRED: waitForStartNewConversation: boolean: if false, don't error
- *     if no botConfig in localStorage - caller will wait for startNewConversation
- *     to supply it. Called does want to get BotConfig from localStorage if
- *     available, which is why we need to pass this in. 
  * 
  * If not cached, fetch from remote unless this is the beginning of a
  * a new conversation, in which case always fetch from remote. This is
@@ -423,38 +425,24 @@ const REMOTE_CONFIG_URL = 'TBD';
  * then forgot the answer or want to take a different path.  Might be
  * significant time between the first (cached) run and the second one.
  */
-function getBotConfig(newConfig, 
-                      getConfigFromRemote, 
-                      localStorageKey,
-                      waitForStartNewConversation) {
-  if (newConfig === undefined || getConfigFromRemote === undefined ||
-    localStorageKey === undefined || waitForStartNewConversation === undefined) {
-      throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument. newConfig=${newConfig}; waitForStartNewConversation= ${waitForStartNewConversation}, getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
+function getBotConfig(getConfigFromRemote, 
+                      localStorageKey) {
+  if (getConfigFromRemote === undefined || localStorageKey === undefined ) {
+      throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument.  getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
   }
 
-  if (newConfig) {
-    // newConfig forces getting from remote even if we have one locally
-    botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-  } else {
-    // if newConfig is false, only try to get config from remote if not present locally
-    let botJSON = localStorage.getItem(localStorageKey);
-    if (getConfigFromRemote && !botJSON && !waitForStartNewConversation) {
-      botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-    }
-
-    if (botJSON) {
+  let botJSON;
+  // newConfig forces getting from remote even if we have one locally
+  botJSON = getConfigFromRemote ? fetchBotConfigFromRemote(REMOTE_CONFIG_URL, 
+                                                 localStorageKey) :
+                                  localStorage.getItem(localStorageKey);
+  if (botJSON) {
       // parse and freeze botJSON since we got something, return
       // Freeze and return botConfig to ensure reusability in new conversation
       const botConfig = Object.freeze(JSON.parse(botJSON));
       if (versionCompatible(botConfig.version)) return botConfig;
-        
-    } else if (!waitForStartNewConversation) {
-      // if we're here, we failed to get botJSON both locally and from remote
-      // AND waitForStartNewConversation is false so caller doesn't want Bot
-      // to get BotConfig from startNewConversation(botConfig) so error.
-      throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote and waitForStartNewConversation prop was false`);
-    }
-    // do nothing if waitForStartNewConversation is true
+  } else {
+    throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote. getConfigFromRemote=${getConfigFromRemote}, localStorageKey=${localStorageKey}`);
   }
 }
 
@@ -471,10 +459,10 @@ invalidBotConfig.prototype = new Error;
 
 
 /* versionCompatible(version: String) => boolean
- * If 2.0.3 is set by rollup, returns
+ * If 2.0.4 is set by rollup, returns
  * true if the version argument is compatible with the bot client code,
  * raises error otherwise. 
- * If 2.0.3 is not set, then also returns true, i.e. there
+ * If 2.0.4 is not set, then also returns true, i.e. there
  * is no version check. So if the version of rollup.config.js in this app
  * is not being used, and version checking is desired, set it manually at 
  * the top of this file, or implement another way to set it when building.
@@ -491,7 +479,7 @@ invalidBotConfig.prototype = new Error;
  */
 function versionCompatible(version) { 
   // if deployer of Bot is using `npm run build` (i.e. its using the   
-  // already-built files in dist/) 2.0.3 will
+  // already-built files in dist/) 2.0.4 will
   // be set by rollup. If its not set, the constant botConfigVersion
   // at the top of this file will be used. If your build pipeline doesn't use 
   // npm run build, e.g. if you are building Bot into your own website with
@@ -573,6 +561,21 @@ function saveConversation(conversation, key) {
   // TODO: save to remote for analytics.  Note that for some bots, this might
   // include PII so have to drop the actual user replies if publisher
   // indicates it should not be retained and only save the metadata.
+}
+
+function getAugmentedNamespace(n) {
+	if (n.__esModule) return n;
+	var a = Object.defineProperty({}, '__esModule', {value: true});
+	Object.keys(n).forEach(function (k) {
+		var d = Object.getOwnPropertyDescriptor(n, k);
+		Object.defineProperty(a, k, d.get ? d : {
+			enumerable: true,
+			get: function () {
+				return n[k];
+			}
+		});
+	});
+	return a;
 }
 
 var INUMBER = 'INUMBER';
@@ -2418,21 +2421,6 @@ var dist = /*#__PURE__*/Object.freeze({
     Expression: Expression,
     Parser: Parser$2
 });
-
-function getAugmentedNamespace(n) {
-	if (n.__esModule) return n;
-	var a = Object.defineProperty({}, '__esModule', {value: true});
-	Object.keys(n).forEach(function (k) {
-		var d = Object.getOwnPropertyDescriptor(n, k);
-		Object.defineProperty(a, k, d.get ? d : {
-			enumerable: true,
-			get: function () {
-				return n[k];
-			}
-		});
-	});
-	return a;
-}
 
 var require$$0 = /*@__PURE__*/getAugmentedNamespace(dist);
 
@@ -4447,6 +4435,10 @@ function getNextSlot(localStorageKey) {
 
   if (nextSlot === undefined) {
     // If no slot was found we're at the end of the conversation.
+    analyticsTracker('page_support_bot_ended_conversation',
+                     { full_conversation: conversation.completedRounds },
+                     conversation );
+
     return {
       completedRounds: clone$1(conversation.completedRounds),
       replyType: slotTypeEnum.endConversation,
@@ -4456,7 +4448,7 @@ function getNextSlot(localStorageKey) {
   } else {
     // if slot not already there, e.g. because user refreshed page, add slot
     if (conversation.completedRounds.length === 0 ||
-        (conversation.completedRounds.length > 0 && 
+         (conversation.completedRounds.length > 0 && 
          nextSlot.name !== conversation.completedRounds
            [conversation.completedRounds.length - 1].slot.name) ) {
       // create and save the slot portion of the round in the conversation tracker
@@ -4467,8 +4459,12 @@ function getNextSlot(localStorageKey) {
       });
       conversation.completedRounds.push(round);
       saveConversation(conversation, localStorageKey);
+      analyticsTracker(`page_support_bot_ask_name_${round.slot.name}`, 
+                       {ask: round.slot.ask},
+                       conversation
+                       );
     }
-
+   
     // return what UI needs to present next ask to user. Clone it so UI specific
     // transformations don't affect the recorded conversation. 
     return {
@@ -4509,10 +4505,8 @@ function rewindConversation(rewoundRoundIndex, getConfigFromRemote, localStorage
   // Reset unSpokenFrames to conversation start point, then remove slots
   // present in completedRounds. We don't want to get a new botConfig nor
   // force a remote reload, so both args are false.
-  const bot = getBotConfig(false, 
-                           getConfigFromRemote, 
-                           localStorageKey,
-                           false);
+  const bot = getBotConfig(getConfigFromRemote, 
+                           localStorageKey);
   conversation.unSpokenFrames = clone$1(bot.frames); 
   
   conversation.completedRounds.forEach((round) => {
@@ -4606,21 +4600,15 @@ function returnFirstTrueSlotTrigger(slotCandidates, repliesAsProps) {
     // Persist the conversation
     saveConversation(conversation, localStorageKey);
 
-    // call the global namespace function that publishers may use for logging.
-    if (conversation.botSettings.trackUserReplies) {
-      try {
-        pageSupportBotTracker('replyClick', {
-          ask: round.slot.ask,
-          userReplyValues: round.userReplyValues,
-          userReplyIndexes: round.userReplyIndexes,
-          ending: round.ending }
-        );
-      } catch (e) {
-        console.error(`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
-See the documentation and make sure you've added a function called 
-pageSupportBotTracker() to you global namespace.`);
-      }
-    }
+    analyticsTracker('page_support_bot_reply_click', 
+          { ask: round.slot.ask,
+            userReplyValues: round.userReplyValues,
+            userReplyIndexes: round.userReplyIndexes,
+            ending: round.ending 
+          },
+          conversation
+          );
+
   }
 
 
@@ -4653,6 +4641,28 @@ pageSupportBotTracker() to you global namespace.`);
     });
     return returnObj;
   }
+
+
+/* analyticsTracker()
+ * Gather conversation parameters and call the global
+ * analytics tracker function if customer has set it up.
+ * Raise error to console if the tracker function is not
+ * present in parent site.
+ */
+function analyticsTracker(eventName, parameters, conversation) {
+
+  // call the global namespace function that publishers may use for logging.
+  if (conversation.botSettings.trackUserReplies) {
+    try {
+      pageSupportBotTracker(eventName, parameters);
+    } catch (e) {
+      console.error(
+`page.support bot tracker is turned on in your bot configuration but not configured correctly. 
+See the documentation and make sure you've added a function called 
+pageSupportBotTracker() to your  global namespace.`);
+    }
+  }
+}
 
 /**
  * marked - a markdown parser
@@ -4726,6 +4736,9 @@ function escape(html, encode) {
 
 const unescapeTest = /&(#(?:\d+)|(?:#x[0-9A-Fa-f]+)|(?:\w+));?/ig;
 
+/**
+ * @param {string} html
+ */
 function unescape(html) {
   // explicitly match decimal, hex, and named HTML entities
   return html.replace(unescapeTest, (_, n) => {
@@ -4741,8 +4754,13 @@ function unescape(html) {
 }
 
 const caret = /(^|[^\[])\^/g;
+
+/**
+ * @param {string | RegExp} regex
+ * @param {string} opt
+ */
 function edit(regex, opt) {
-  regex = regex.source || regex;
+  regex = typeof regex === 'string' ? regex : regex.source;
   opt = opt || '';
   const obj = {
     replace: (name, val) => {
@@ -4760,6 +4778,12 @@ function edit(regex, opt) {
 
 const nonWordAndColonTest = /[^\w:]/g;
 const originIndependentUrl = /^$|^[a-z][a-z0-9+.-]*:|^[?#]/i;
+
+/**
+ * @param {boolean} sanitize
+ * @param {string} base
+ * @param {string} href
+ */
 function cleanUrl(sanitize, base, href) {
   if (sanitize) {
     let prot;
@@ -4790,6 +4814,10 @@ const justDomain = /^[^:]+:\/*[^/]*$/;
 const protocol = /^([^:]+:)[\s\S]*$/;
 const domain = /^([^:]+:\/*[^/]*)[\s\S]*$/;
 
+/**
+ * @param {string} base
+ * @param {string} href
+ */
 function resolveUrl(base, href) {
   if (!baseUrls[' ' + base]) {
     // we can ignore everything in base after the last slash of its path component,
@@ -4874,9 +4902,14 @@ function splitCells(tableRow, count) {
   return cells;
 }
 
-// Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
-// /c*$/ is vulnerable to REDOS.
-// invert: Remove suffix of non-c chars instead. Default falsey.
+/**
+ * Remove trailing 'c's. Equivalent to str.replace(/c*$/, '').
+ * /c*$/ is vulnerable to REDOS.
+ *
+ * @param {string} str
+ * @param {string} c
+ * @param {boolean} invert Remove suffix of non-c chars instead. Default falsey.
+ */
 function rtrim(str, c, invert) {
   const l = str.length;
   if (l === 0) {
@@ -4898,7 +4931,7 @@ function rtrim(str, c, invert) {
     }
   }
 
-  return str.substr(0, l - suffLen);
+  return str.slice(0, l - suffLen);
 }
 
 function findClosingBracket(str, b) {
@@ -4930,6 +4963,10 @@ function checkSanitizeDeprecation(opt) {
 }
 
 // copied from https://stackoverflow.com/a/5450113/806777
+/**
+ * @param {string} pattern
+ * @param {number} count
+ */
 function repeatString(pattern, count) {
   if (count < 1) {
     return '';
@@ -5090,7 +5127,7 @@ class Tokenizer {
   blockquote(src) {
     const cap = this.rules.block.blockquote.exec(src);
     if (cap) {
-      const text = cap[0].replace(/^ *> ?/gm, '');
+      const text = cap[0].replace(/^ *>[ \t]?/gm, '');
 
       return {
         type: 'blockquote',
@@ -5126,7 +5163,7 @@ class Tokenizer {
       }
 
       // Get next list item
-      const itemRegex = new RegExp(`^( {0,3}${bull})((?: [^\\n]*)?(?:\\n|$))`);
+      const itemRegex = new RegExp(`^( {0,3}${bull})((?:[\t ][^\\n]*)?(?:\\n|$))`);
 
       // Check if current bullet point can start a new List Item
       while (src) {
@@ -5713,10 +5750,10 @@ const block = {
   newline: /^(?: *(?:\n|$))+/,
   code: /^( {4}[^\n]+(?:\n(?: *(?:\n|$))*)?)+/,
   fences: /^ {0,3}(`{3,}(?=[^`\n]*\n)|~{3,})([^\n]*)\n(?:|([\s\S]*?)\n)(?: {0,3}\1[~`]* *(?=\n|$)|$)/,
-  hr: /^ {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\* *){3,})(?:\n+|$)/,
+  hr: /^ {0,3}((?:-[\t ]*){3,}|(?:_[ \t]*){3,}|(?:\*[ \t]*){3,})(?:\n+|$)/,
   heading: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
   blockquote: /^( {0,3}> ?(paragraph|[^\n]*)(?:\n|$))+/,
-  list: /^( {0,3}bull)( [^\n]+?)?(?:\n|$)/,
+  list: /^( {0,3}bull)([ \t][^\n]+?)?(?:\n|$)/,
   html: '^ {0,3}(?:' // optional indentation
     + '<(script|pre|style|textarea)[\\s>][\\s\\S]*?(?:</\\1>[^\\n]*\\n+|$)' // (1)
     + '|comment[^\\n]*(\\n+|$)' // (2)
@@ -5870,9 +5907,9 @@ const inline = {
   emStrong: {
     lDelim: /^(?:\*+(?:([punct_])|[^\s*]))|^_+(?:([punct*])|([^\s_]))/,
     //        (1) and (2) can only be a Right Delimiter. (3) and (4) can only be Left.  (5) and (6) can be either Left or Right.
-    //        () Skip orphan delim inside strong    (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
-    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
-    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
+    //          () Skip orphan inside strong  () Consume to delim (1) #***                (2) a***#, a***                   (3) #***a, ***a                 (4) ***#              (5) #***#                 (6) a***a
+    rDelimAst: /^[^_*]*?\_\_[^_*]*?\*[^_*]*?(?=\_\_)|[^*]+(?=[^*])|[punct_](\*+)(?=[\s]|$)|[^punct*_\s](\*+)(?=[punct_\s]|$)|[punct_\s](\*+)(?=[^punct*_\s])|[\s](\*+)(?=[punct_])|[punct_](\*+)(?=[punct_])|[^punct*_\s](\*+)(?=[^punct*_\s])/,
+    rDelimUnd: /^[^_*]*?\*\*[^_*]*?\_[^_*]*?(?=\*\*)|[^_]+(?=[^_])|[punct*](\_+)(?=[\s]|$)|[^punct*_\s](\_+)(?=[punct*\s]|$)|[punct*\s](\_+)(?=[^punct*_\s])|[\s](\_+)(?=[punct*])|[punct*](\_+)(?=[punct*])/ // ^- Not allowed for _
   },
   code: /^(`+)([^`]|[^`][\s\S]*?[^`])\1(?!`)/,
   br: /^( {2,}|\\)\n(?!\s*$)/,
@@ -6005,6 +6042,7 @@ inline.breaks = merge({}, inline.gfm, {
 
 /**
  * smartypants text replacement
+ * @param {string} text
  */
 function smartypants(text) {
   return text
@@ -6026,6 +6064,7 @@ function smartypants(text) {
 
 /**
  * mangle email addresses
+ * @param {string} text
  */
 function mangle(text) {
   let out = '',
@@ -6113,8 +6152,7 @@ class Lexer {
    */
   lex(src) {
     src = src
-      .replace(/\r\n|\r/g, '\n')
-      .replace(/\t/g, '    ');
+      .replace(/\r\n|\r/g, '\n');
 
     this.blockTokens(src, this.tokens);
 
@@ -6131,8 +6169,13 @@ class Lexer {
    */
   blockTokens(src, tokens = []) {
     if (this.options.pedantic) {
-      src = src.replace(/^ +$/gm, '');
+      src = src.replace(/\t/g, '    ').replace(/^ +$/gm, '');
+    } else {
+      src = src.replace(/^( *)(\t+)/gm, (_, leading, tabs) => {
+        return leading + '    '.repeat(tabs.length);
+      });
     }
+
     let token, lastToken, cutSrc, lastParagraphClipped;
 
     while (src) {
@@ -6528,29 +6571,31 @@ class Renderer {
       + '</code></pre>\n';
   }
 
+  /**
+   * @param {string} quote
+   */
   blockquote(quote) {
-    return '<blockquote>\n' + quote + '</blockquote>\n';
+    return `<blockquote>\n${quote}</blockquote>\n`;
   }
 
   html(html) {
     return html;
   }
 
+  /**
+   * @param {string} text
+   * @param {string} level
+   * @param {string} raw
+   * @param {any} slugger
+   */
   heading(text, level, raw, slugger) {
     if (this.options.headerIds) {
-      return '<h'
-        + level
-        + ' id="'
-        + this.options.headerPrefix
-        + slugger.slug(raw)
-        + '">'
-        + text
-        + '</h'
-        + level
-        + '>\n';
+      const id = this.options.headerPrefix + slugger.slug(raw);
+      return `<h${level} id="${id}">${text}</h${level}>\n`;
     }
+
     // ignore IDs
-    return '<h' + level + '>' + text + '</h' + level + '>\n';
+    return `<h${level}>${text}</h${level}>\n`;
   }
 
   hr() {
@@ -6563,8 +6608,11 @@ class Renderer {
     return '<' + type + startatt + '>\n' + body + '</' + type + '>\n';
   }
 
+  /**
+   * @param {string} text
+   */
   listitem(text) {
-    return '<li>' + text + '</li>\n';
+    return `<li>${text}</li>\n`;
   }
 
   checkbox(checked) {
@@ -6575,12 +6623,19 @@ class Renderer {
       + '> ';
   }
 
+  /**
+   * @param {string} text
+   */
   paragraph(text) {
-    return '<p>' + text + '</p>\n';
+    return `<p>${text}</p>\n`;
   }
 
+  /**
+   * @param {string} header
+   * @param {string} body
+   */
   table(header, body) {
-    if (body) body = '<tbody>' + body + '</tbody>';
+    if (body) body = `<tbody>${body}</tbody>`;
 
     return '<table>\n'
       + '<thead>\n'
@@ -6590,39 +6645,59 @@ class Renderer {
       + '</table>\n';
   }
 
+  /**
+   * @param {string} content
+   */
   tablerow(content) {
-    return '<tr>\n' + content + '</tr>\n';
+    return `<tr>\n${content}</tr>\n`;
   }
 
   tablecell(content, flags) {
     const type = flags.header ? 'th' : 'td';
     const tag = flags.align
-      ? '<' + type + ' align="' + flags.align + '">'
-      : '<' + type + '>';
-    return tag + content + '</' + type + '>\n';
+      ? `<${type} align="${flags.align}">`
+      : `<${type}>`;
+    return tag + content + `</${type}>\n`;
   }
 
-  // span level renderer
+  /**
+   * span level renderer
+   * @param {string} text
+   */
   strong(text) {
-    return '<strong>' + text + '</strong>';
+    return `<strong>${text}</strong>`;
   }
 
+  /**
+   * @param {string} text
+   */
   em(text) {
-    return '<em>' + text + '</em>';
+    return `<em>${text}</em>`;
   }
 
+  /**
+   * @param {string} text
+   */
   codespan(text) {
-    return '<code>' + text + '</code>';
+    return `<code>${text}</code>`;
   }
 
   br() {
     return this.options.xhtml ? '<br/>' : '<br>';
   }
 
+  /**
+   * @param {string} text
+   */
   del(text) {
-    return '<del>' + text + '</del>';
+    return `<del>${text}</del>`;
   }
 
+  /**
+   * @param {string} href
+   * @param {string} title
+   * @param {string} text
+   */
   link(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
     if (href === null) {
@@ -6636,15 +6711,20 @@ class Renderer {
     return out;
   }
 
+  /**
+   * @param {string} href
+   * @param {string} title
+   * @param {string} text
+   */
   image(href, title, text) {
     href = cleanUrl(this.options.sanitize, this.options.baseUrl, href);
     if (href === null) {
       return text;
     }
 
-    let out = '<img src="' + href + '" alt="' + text + '"';
+    let out = `<img src="${href}" alt="${text}"`;
     if (title) {
-      out += ' title="' + title + '"';
+      out += ` title="${title}"`;
     }
     out += this.options.xhtml ? '/>' : '>';
     return out;
@@ -6706,6 +6786,9 @@ class Slugger {
     this.seen = {};
   }
 
+  /**
+   * @param {string} value
+   */
   serialize(value) {
     return value
       .toLowerCase()
@@ -6719,6 +6802,8 @@ class Slugger {
 
   /**
    * Finds the next safe (unique) slug to use
+   * @param {string} originalSlug
+   * @param {boolean} isDryRun
    */
   getNextSafeSlug(originalSlug, isDryRun) {
     let slug = originalSlug;
@@ -6739,8 +6824,9 @@ class Slugger {
 
   /**
    * Convert string to unique id
-   * @param {object} options
-   * @param {boolean} options.dryrun Generates the next unique slug without updating the internal accumulator.
+   * @param {object} [options]
+   * @param {boolean} [options.dryrun] Generates the next unique slug without
+   * updating the internal accumulator.
    */
   slug(value, options = {}) {
     const slug = this.serialize(value);
@@ -7301,6 +7387,7 @@ marked.walkTokens = function(tokens, callback) {
 
 /**
  * Parse Inline
+ * @param {string} src
  */
 marked.parseInline = function(src, opt) {
   // throw error in case of non string input
@@ -7347,50 +7434,23 @@ marked.parse = marked;
 Parser.parse;
 Lexer.lex;
 
-/** 
- * Dispatch event on click outside of the DOM element in the argument.
- * Imported into any component that needs to open/close
- * a modal, select box or other ui element when the user clicks
- * outside of it
- * Args: node is the html node we want to detect clicks outside of
- * Derived from https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
- **/
-function clickOutside(node) {
-  
-  const handleClick = event => {
-    if (node && !node.contains(event.target) && !event.defaultPrevented) {
-      node.dispatchEvent(
-        new CustomEvent('click_outside', node)
-      );
-    }
-  };
-
-	document.addEventListener('click', handleClick, true);
-  
-  return {
-    destroy() {
-      document.removeEventListener('click', handleClick, true);
-    }
-	}
-}
-
-/* src/ui/MultiSelect.svelte generated by Svelte v3.46.6 */
+/* src/ui/MultiSelect.svelte generated by Svelte v3.47.0 */
 
 function get_each_context$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[14] = list[i];
+	child_ctx[16] = list[i];
 	return child_ctx;
 }
 
 function get_each_context_1$1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[17] = list[i];
-	child_ctx[18] = list;
-	child_ctx[19] = i;
+	child_ctx[19] = list[i];
+	child_ctx[20] = list;
+	child_ctx[21] = i;
 	return child_ctx;
 }
 
-// (103:2) {#if showOptions}
+// (132:2) {#if showOptions}
 function create_if_block_3$1(ctx) {
 	let ul;
 	let each_value_1 = /*replyObjects*/ ctx[3];
@@ -7452,7 +7512,7 @@ function create_if_block_3$1(ctx) {
 	};
 }
 
-// (141:10) {#if replyObj.selected}
+// (170:10) {#if replyObj.selected}
 function create_if_block_4$1(ctx) {
 	let svg;
 	let path;
@@ -7480,29 +7540,29 @@ function create_if_block_4$1(ctx) {
 	};
 }
 
-// (114:4) {#each replyObjects as replyObj, index}
+// (143:4) {#each replyObjects as replyObj, index}
 function create_each_block_1$1(ctx) {
 	let li;
 	let span0;
-	let t0_value = /*replyObj*/ ctx[17].value + "";
+	let t0_value = /*replyObj*/ ctx[19].value + "";
 	let t0;
 	let t1;
 	let span1;
 	let t2;
 	let mounted;
 	let dispose;
-	let if_block = /*replyObj*/ ctx[17].selected && create_if_block_4$1();
+	let if_block = /*replyObj*/ ctx[19].selected && create_if_block_4$1();
+
+	function click_handler() {
+		return /*click_handler*/ ctx[10](/*index*/ ctx[21]);
+	}
 
 	function mouseenter_handler() {
-		return /*mouseenter_handler*/ ctx[8](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
+		return /*mouseenter_handler*/ ctx[11](/*replyObj*/ ctx[19], /*each_value_1*/ ctx[20], /*index*/ ctx[21]);
 	}
 
 	function mouseleave_handler() {
-		return /*mouseleave_handler*/ ctx[9](/*replyObj*/ ctx[17], /*each_value_1*/ ctx[18], /*index*/ ctx[19]);
-	}
-
-	function click_handler() {
-		return /*click_handler*/ ctx[10](/*index*/ ctx[19]);
+		return /*mouseleave_handler*/ ctx[12](/*replyObj*/ ctx[19], /*each_value_1*/ ctx[20], /*index*/ ctx[21]);
 	}
 
 	return {
@@ -7515,13 +7575,13 @@ function create_each_block_1$1(ctx) {
 			if (if_block) if_block.c();
 			t2 = space();
 			attr(span0, "class", "font-normal block truncate");
-			toggle_class(span0, "font-semibold", /*replyObj*/ ctx[17].selected);
+			toggle_class(span0, "font-semibold", /*replyObj*/ ctx[19].selected);
 			attr(span1, "class", "text-gray-600 absolute inset-y-0 left-0 flex items-center pl-1.5");
-			toggle_class(span1, "text-white", /*replyObj*/ ctx[17].highlighted === true);
+			toggle_class(span1, "text-white", /*replyObj*/ ctx[19].highlighted === true);
 			attr(li, "class", "text-gray-900 cursor-default select-none relative py-2 pl-8 pr-4 svelte-2sks30");
 			attr(li, "id", "listbox-option-0");
 			attr(li, "role", "option");
-			toggle_class(li, "highlightedOption", /*replyObj*/ ctx[17].highlighted === true);
+			toggle_class(li, "highlightedOption", /*replyObj*/ ctx[19].highlighted === true);
 		},
 		m(target, anchor) {
 			insert(target, li, anchor);
@@ -7534,9 +7594,9 @@ function create_each_block_1$1(ctx) {
 
 			if (!mounted) {
 				dispose = [
+					listen(li, "click", click_handler),
 					listen(li, "mouseenter", mouseenter_handler),
-					listen(li, "mouseleave", mouseleave_handler),
-					listen(li, "click", click_handler)
+					listen(li, "mouseleave", mouseleave_handler)
 				];
 
 				mounted = true;
@@ -7544,13 +7604,13 @@ function create_each_block_1$1(ctx) {
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty & /*replyObjects*/ 8 && t0_value !== (t0_value = /*replyObj*/ ctx[17].value + "")) set_data(t0, t0_value);
+			if (dirty & /*replyObjects*/ 8 && t0_value !== (t0_value = /*replyObj*/ ctx[19].value + "")) set_data(t0, t0_value);
 
 			if (dirty & /*replyObjects*/ 8) {
-				toggle_class(span0, "font-semibold", /*replyObj*/ ctx[17].selected);
+				toggle_class(span0, "font-semibold", /*replyObj*/ ctx[19].selected);
 			}
 
-			if (/*replyObj*/ ctx[17].selected) {
+			if (/*replyObj*/ ctx[19].selected) {
 				if (if_block) ; else {
 					if_block = create_if_block_4$1();
 					if_block.c();
@@ -7562,11 +7622,11 @@ function create_each_block_1$1(ctx) {
 			}
 
 			if (dirty & /*replyObjects*/ 8) {
-				toggle_class(span1, "text-white", /*replyObj*/ ctx[17].highlighted === true);
+				toggle_class(span1, "text-white", /*replyObj*/ ctx[19].highlighted === true);
 			}
 
 			if (dirty & /*replyObjects*/ 8) {
-				toggle_class(li, "highlightedOption", /*replyObj*/ ctx[17].highlighted === true);
+				toggle_class(li, "highlightedOption", /*replyObj*/ ctx[19].highlighted === true);
 			}
 		},
 		d(detaching) {
@@ -7578,11 +7638,11 @@ function create_each_block_1$1(ctx) {
 	};
 }
 
-// (184:6) {#each selectedReplyIndexes as selectedReplyIndex}
+// (213:6) {#each selectedReplyIndexes as selectedReplyIndex}
 function create_each_block$1(ctx) {
 	let li;
 	let span0;
-	let t0_value = /*replyOptions*/ ctx[1][/*selectedReplyIndex*/ ctx[14]] + "";
+	let t0_value = /*replyOptions*/ ctx[0][/*selectedReplyIndex*/ ctx[16]] + "";
 	let t0;
 	let t1;
 	let span1;
@@ -7591,7 +7651,7 @@ function create_each_block$1(ctx) {
 	let dispose;
 
 	function click_handler_1() {
-		return /*click_handler_1*/ ctx[11](/*selectedReplyIndex*/ ctx[14]);
+		return /*click_handler_1*/ ctx[13](/*selectedReplyIndex*/ ctx[16]);
 	}
 
 	return {
@@ -7629,7 +7689,7 @@ function create_each_block$1(ctx) {
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty & /*replyOptions, selectedReplyIndexes*/ 3 && t0_value !== (t0_value = /*replyOptions*/ ctx[1][/*selectedReplyIndex*/ ctx[14]] + "")) set_data(t0, t0_value);
+			if (dirty & /*replyOptions, selectedReplyIndexes*/ 5 && t0_value !== (t0_value = /*replyOptions*/ ctx[0][/*selectedReplyIndex*/ ctx[16]] + "")) set_data(t0, t0_value);
 		},
 		d(detaching) {
 			if (detaching) detach(li);
@@ -7639,7 +7699,7 @@ function create_each_block$1(ctx) {
 	};
 }
 
-// (220:4) {#if selectedReplyIndexes.length === 0}
+// (249:4) {#if selectedReplyIndexes.length === 0}
 function create_if_block_2$1(ctx) {
 	let div;
 
@@ -7658,14 +7718,14 @@ function create_if_block_2$1(ctx) {
 	};
 }
 
-// (227:4) {#if !showOptions && selectedReplyIndexes.length === 0 }
+// (256:4) {#if !showOptions && selectedReplyIndexes.length === 0 }
 function create_if_block_1$1(ctx) {
 	let span;
 
 	return {
 		c() {
 			span = element("span");
-			span.innerHTML = `<svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
+			span.innerHTML = `<svg class="text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" style="height: 20px; width: 20px;"><path fill-rule="evenodd" d="M10 3a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414L10 5.414 7.707 7.707a1 1 0 01-1.414-1.414l3-3A1 1 0 0110 3zm-3.707 9.293a1 1 0 011.414 0L10 14.586l2.293-2.293a1 1 0 011.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>`;
 			attr(span, "class", "absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none");
 		},
 		m(target, anchor) {
@@ -7677,7 +7737,7 @@ function create_if_block_1$1(ctx) {
 	};
 }
 
-// (251:2) {#if selectedReplyIndexes.length !== 0}
+// (281:2) {#if selectedReplyIndexes.length !== 0}
 function create_if_block$1(ctx) {
 	let button;
 	let mounted;
@@ -7706,7 +7766,7 @@ function create_if_block$1(ctx) {
 	};
 }
 
-function create_fragment$1(ctx) {
+function create_fragment$2(ctx) {
 	let div;
 	let t0;
 	let button;
@@ -7716,17 +7776,17 @@ function create_fragment$1(ctx) {
 	let t3;
 	let mounted;
 	let dispose;
-	let if_block0 = /*showOptions*/ ctx[2] && create_if_block_3$1(ctx);
-	let each_value = /*selectedReplyIndexes*/ ctx[0];
+	let if_block0 = /*showOptions*/ ctx[1] && create_if_block_3$1(ctx);
+	let each_value = /*selectedReplyIndexes*/ ctx[2];
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value.length; i += 1) {
 		each_blocks[i] = create_each_block$1(get_each_context$1(ctx, each_value, i));
 	}
 
-	let if_block1 = /*selectedReplyIndexes*/ ctx[0].length === 0 && create_if_block_2$1();
-	let if_block2 = !/*showOptions*/ ctx[2] && /*selectedReplyIndexes*/ ctx[0].length === 0 && create_if_block_1$1();
-	let if_block3 = /*selectedReplyIndexes*/ ctx[0].length !== 0 && create_if_block$1(ctx);
+	let if_block1 = /*selectedReplyIndexes*/ ctx[2].length === 0 && create_if_block_2$1();
+	let if_block2 = !/*showOptions*/ ctx[1] && /*selectedReplyIndexes*/ ctx[2].length === 0 && create_if_block_1$1();
+	let if_block3 = /*selectedReplyIndexes*/ ctx[2].length !== 0 && create_if_block$1(ctx);
 
 	return {
 		c() {
@@ -7778,8 +7838,8 @@ function create_fragment$1(ctx) {
 
 			if (!mounted) {
 				dispose = [
-					listen(button, "click", /*click_handler_2*/ ctx[12]),
-					action_destroyer(clickOutside.call(null, div)),
+					listen(button, "click", /*click_handler_2*/ ctx[14]),
+					action_destroyer(/*clickOutside*/ ctx[8].call(null, div)),
 					listen(div, "click_outside", /*handleClickOutside*/ ctx[7])
 				];
 
@@ -7787,7 +7847,7 @@ function create_fragment$1(ctx) {
 			}
 		},
 		p(ctx, [dirty]) {
-			if (/*showOptions*/ ctx[2]) {
+			if (/*showOptions*/ ctx[1]) {
 				if (if_block0) {
 					if_block0.p(ctx, dirty);
 				} else {
@@ -7800,8 +7860,8 @@ function create_fragment$1(ctx) {
 				if_block0 = null;
 			}
 
-			if (dirty & /*remove, selectedReplyIndexes, replyOptions*/ 35) {
-				each_value = /*selectedReplyIndexes*/ ctx[0];
+			if (dirty & /*remove, selectedReplyIndexes, replyOptions*/ 37) {
+				each_value = /*selectedReplyIndexes*/ ctx[2];
 				let i;
 
 				for (i = 0; i < each_value.length; i += 1) {
@@ -7823,7 +7883,7 @@ function create_fragment$1(ctx) {
 				each_blocks.length = each_value.length;
 			}
 
-			if (/*selectedReplyIndexes*/ ctx[0].length === 0) {
+			if (/*selectedReplyIndexes*/ ctx[2].length === 0) {
 				if (if_block1) ; else {
 					if_block1 = create_if_block_2$1();
 					if_block1.c();
@@ -7834,7 +7894,7 @@ function create_fragment$1(ctx) {
 				if_block1 = null;
 			}
 
-			if (!/*showOptions*/ ctx[2] && /*selectedReplyIndexes*/ ctx[0].length === 0) {
+			if (!/*showOptions*/ ctx[1] && /*selectedReplyIndexes*/ ctx[2].length === 0) {
 				if (if_block2) ; else {
 					if_block2 = create_if_block_1$1();
 					if_block2.c();
@@ -7845,7 +7905,7 @@ function create_fragment$1(ctx) {
 				if_block2 = null;
 			}
 
-			if (/*selectedReplyIndexes*/ ctx[0].length !== 0) {
+			if (/*selectedReplyIndexes*/ ctx[2].length !== 0) {
 				if (if_block3) {
 					if_block3.p(ctx, dirty);
 				} else {
@@ -7873,13 +7933,16 @@ function create_fragment$1(ctx) {
 	};
 }
 
-function instance$1($$self, $$props, $$invalidate) {
+function instance$2($$self, $$props, $$invalidate) {
 	const dispatch = createEventDispatcher();
-	let { selectedReplyIndexes = [] } = $$props;
+	let { botShadowHostId } = $$props;
 	let { replyOptions } = $$props;
 
 	// UI toggles
 	let showOptions = false; // Boolean: show/hide replyOptions: open == true,
+
+	// to show in the upper list of selected replies.
+	let selectedReplyIndexes = [];
 
 	// used to track which replyOptions have already been selected so the whole
 	// list of replyOptions can highlight the selected ones.
@@ -7899,7 +7962,7 @@ function instance$1($$self, $$props, $$invalidate) {
 			// Add the item to the upper list of selected items.
 			selectedReplyIndexes.push(index);
 
-			$$invalidate(0, selectedReplyIndexes); // trigger reactivity
+			$$invalidate(2, selectedReplyIndexes); // trigger reactivity
 
 			// Set the left border color in the replyObjects lower list so user can
 			// see what's already selected
@@ -7919,14 +7982,12 @@ function instance$1($$self, $$props, $$invalidate) {
 		// Remove the item from the upper list of selected items
 		selectedReplyIndexes.splice(selectedReplyIndexes.indexOf(index), 1);
 
-		$$invalidate(0, selectedReplyIndexes); // trigger reactivity
+		$$invalidate(2, selectedReplyIndexes); // trigger reactivity
 
 		// Remove the left border color in the replyObjects lower list
 		$$invalidate(3, replyObjects[index].selected = false, replyObjects);
 
 		$$invalidate(3, replyObjects);
-		console.log(`removed ${index}`);
-		console.log(selectedReplyIndexes.length);
 	}
 
 	/* User clicks Save/done button next to single or multi select */
@@ -7936,32 +7997,61 @@ function instance$1($$self, $$props, $$invalidate) {
 
 	/* Close multiselect options list when user clicks outside of the list */
 	function handleClickOutside(event) {
-		$$invalidate(2, showOptions = false); // hide the options list
+		$$invalidate(1, showOptions = false); // hide the options list
 	}
 
+	/* clickOutside()
+ * Dispatch event on click outside of the DOM element in the argument.
+ * Imported into any component that needs to open/close
+ * a modal, select box or other ui element when the user clicks
+ * outside of it
+ * Args: node is the html node we want to detect clicks outside of
+ * Derived from https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
+ */
+	function clickOutside(node) {
+		const handleClick = event => {
+			if (node && !node.contains(event.target) && !event.defaultPrevented) {
+				node.dispatchEvent(new CustomEvent('click_outside', node));
+			}
+		};
+
+		// To select el in the shadowRoot must select off the shadowRoot not document
+		const shadowRt = document.getElementById(botShadowHostId).shadowRoot;
+
+		shadowRt.getElementById("pageBotContainer").addEventListener('click', handleClick, true);
+
+		return {
+			destroy() {
+				shadowRt.getElementById("pageBotContainer").removeEventListener('click', handleClick, true);
+			}
+		};
+	}
+
+	const click_handler = index => select(index);
 	const mouseenter_handler = (replyObj, each_value_1, index) => $$invalidate(3, each_value_1[index].highlighted = true, replyObjects);
 	const mouseleave_handler = (replyObj, each_value_1, index) => $$invalidate(3, each_value_1[index].highlighted = false, replyObjects);
-	const click_handler = index => select(index);
 	const click_handler_1 = selectedReplyIndex => remove(selectedReplyIndex);
-	const click_handler_2 = () => $$invalidate(2, showOptions = !showOptions);
+	const click_handler_2 = () => $$invalidate(1, showOptions = !showOptions);
 
 	$$self.$$set = $$props => {
-		if ('selectedReplyIndexes' in $$props) $$invalidate(0, selectedReplyIndexes = $$props.selectedReplyIndexes);
-		if ('replyOptions' in $$props) $$invalidate(1, replyOptions = $$props.replyOptions);
+		if ('botShadowHostId' in $$props) $$invalidate(9, botShadowHostId = $$props.botShadowHostId);
+		if ('replyOptions' in $$props) $$invalidate(0, replyOptions = $$props.replyOptions);
 	};
 
 	return [
-		selectedReplyIndexes,
 		replyOptions,
 		showOptions,
+		selectedReplyIndexes,
 		replyObjects,
 		select,
 		remove,
 		submit,
 		handleClickOutside,
+		clickOutside,
+		botShadowHostId,
+		click_handler,
 		mouseenter_handler,
 		mouseleave_handler,
-		click_handler,
 		click_handler_1,
 		click_handler_2
 	];
@@ -7970,143 +8060,75 @@ function instance$1($$self, $$props, $$invalidate) {
 class MultiSelect extends SvelteComponent {
 	constructor(options) {
 		super();
-		init(this, options, instance$1, create_fragment$1, safe_not_equal, { selectedReplyIndexes: 0, replyOptions: 1 });
+		init(this, options, instance$2, create_fragment$2, safe_not_equal, { botShadowHostId: 9, replyOptions: 0 });
 	}
 }
 
-/* src/ui/Bot.svelte generated by Svelte v3.46.6 */
+/* src/ui/BotConversationUI.svelte generated by Svelte v3.47.0 */
 
 function get_each_context_1(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[38] = list[i];
-	child_ctx[40] = i;
+	child_ctx[40] = list[i];
+	child_ctx[42] = i;
 	return child_ctx;
 }
 
 function get_each_context(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[38] = list[i];
-	child_ctx[40] = i;
+	child_ctx[40] = list[i];
+	child_ctx[42] = i;
 	return child_ctx;
 }
 
 function get_each_context_2(ctx, list, i) {
 	const child_ctx = ctx.slice();
-	child_ctx[42] = list[i].slot;
-	child_ctx[43] = list[i].userReplyValues;
-	child_ctx[45] = i;
+	child_ctx[44] = list[i].slot;
+	child_ctx[45] = list[i].userReplyValues;
+	child_ctx[47] = i;
 	return child_ctx;
 }
 
-// (766:0) {:else}
+// (660:2) {:else}
 function create_else_block(ctx) {
-	let h2;
+	let p;
 
 	return {
 		c() {
-			h2 = element("h2");
-			h2.textContent = "Unknown error";
+			p = element("p");
+			p.textContent = "Unknown condition";
+			set_style(p, "color", "red");
 		},
 		m(target, anchor) {
-			insert(target, h2, anchor);
+			insert(target, p, anchor);
 		},
 		p: noop,
 		i: noop,
 		o: noop,
 		d(detaching) {
-			if (detaching) detach(h2);
+			if (detaching) detach(p);
 		}
 	};
 }
 
-// (759:28) 
-function create_if_block_11(ctx) {
-	let button;
-
-	return {
-		c() {
-			button = element("button");
-
-			button.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24"></svg>
-    Loading`;
-
-			attr(button, "type", "button");
-			attr(button, "class", "bg-primary-600");
-			button.disabled = true;
-		},
-		m(target, anchor) {
-			insert(target, button, anchor);
-		},
-		p: noop,
-		i: noop,
-		o: noop,
-		d(detaching) {
-			if (detaching) detach(button);
-		}
-	};
-}
-
-// (757:38) 
-function create_if_block_10(ctx) {
-	return {
-		c: noop,
-		m: noop,
-		p: noop,
-		i: noop,
-		o: noop,
-		d: noop
-	};
-}
-
-// (755:30) 
-function create_if_block_9(ctx) {
-	let h2;
-	let t0;
-	let t1;
-
-	return {
-		c() {
-			h2 = element("h2");
-			t0 = text("Bot failed to load: ");
-			t1 = text(/*UIError*/ ctx[9]);
-			attr(h2, "class", "text-gray text-lg");
-		},
-		m(target, anchor) {
-			insert(target, h2, anchor);
-			append(h2, t0);
-			append(h2, t1);
-		},
-		p(ctx, dirty) {
-			if (dirty[0] & /*UIError*/ 512) set_data(t1, /*UIError*/ ctx[9]);
-		},
-		i: noop,
-		o: noop,
-		d(detaching) {
-			if (detaching) detach(h2);
-		}
-	};
-}
-
-// (570:0) {#if showBotUI && !showUnfriendlyError}
-function create_if_block(ctx) {
+// (476:25) 
+function create_if_block_3(ctx) {
 	let div6;
 	let div1;
 	let div0;
-	let raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "";
+	let raw0_value = marked(/*frameIntroduction*/ ctx[10]) + "";
 	let t0;
 	let t1;
 	let div5;
 	let div2;
 	let p;
-	let raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "";
+	let raw1_value = marked(/*completedRounds*/ ctx[3][/*completedRounds*/ ctx[3].length - 1].slot.ask) + "";
 	let t2;
 	let div4;
 	let div3;
 	let current_block_type_index;
-	let if_block0;
-	let t3;
+	let if_block;
 	let current;
-	let each_value_2 = /*completedRounds*/ ctx[1].slice(0, -1);
+	let each_value_2 = /*completedRounds*/ ctx[3].slice(0, -1);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_2.length; i += 1) {
@@ -8114,31 +8136,29 @@ function create_if_block(ctx) {
 	}
 
 	const if_block_creators = [
-		create_if_block_2,
-		create_if_block_3,
 		create_if_block_4,
 		create_if_block_5,
 		create_if_block_6,
-		create_if_block_7
+		create_if_block_7,
+		create_if_block_8,
+		create_if_block_9
 	];
 
 	const if_blocks = [];
 
 	function select_block_type_1(ctx, dirty) {
-		if (/*replyType*/ ctx[4] === slotTypeEnum.diagnostic || /*replyType*/ ctx[4] === slotTypeEnum.single && /*replyOptions*/ ctx[2][0] === BUILT_IN_REPLIES.done[0]) return 0;
-		if (/*replyType*/ ctx[4] === slotTypeEnum.single) return 1;
-		if (/*replyType*/ ctx[4] === slotTypeEnum.multiple) return 2;
-		if (/*replyType*/ ctx[4] === "freeTextEntry") return 3;
-		if (/*replyType*/ ctx[4] === slotTypeEnum.endConversation) return 4;
-		if (/*replyType*/ ctx[4] !== "answer") return 5;
+		if (/*replyType*/ ctx[5] === slotTypeEnum.diagnostic || /*replyType*/ ctx[5] === slotTypeEnum.single && /*replyOptions*/ ctx[4][0] === BUILT_IN_REPLIES.done[0]) return 0;
+		if (/*replyType*/ ctx[5] === slotTypeEnum.single) return 1;
+		if (/*replyType*/ ctx[5] === slotTypeEnum.multiple) return 2;
+		if (/*replyType*/ ctx[5] === "freeTextEntry") return 3;
+		if (/*replyType*/ ctx[5] === slotTypeEnum.endConversation) return 4;
+		if (/*replyType*/ ctx[5] !== "answer") return 5;
 		return -1;
 	}
 
 	if (~(current_block_type_index = select_block_type_1(ctx))) {
-		if_block0 = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
+		if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
 	}
-
-	let if_block1 = /*showRestartButton*/ ctx[13] && create_if_block_1();
 
 	return {
 		c() {
@@ -8158,9 +8178,7 @@ function create_if_block(ctx) {
 			t2 = space();
 			div4 = element("div");
 			div3 = element("div");
-			if (if_block0) if_block0.c();
-			t3 = space();
-			if (if_block1) if_block1.c();
+			if (if_block) if_block.c();
 			attr(div0, "id", "frameIntroduction");
 			attr(div1, "id", "conversationHistory");
 			attr(div1, "class", "flex flex-col space-y-4 mb-4");
@@ -8172,7 +8190,7 @@ function create_if_block(ctx) {
 			attr(div4, "id", "currentUserReply");
 			attr(div5, "id", "currentRound");
 			attr(div5, "class", "sm:space-y-5 bg-white border-solid border border-gray-200 rounded-lg p-3");
-			attr(div6, "id", "botContainer");
+			attr(div6, "id", "pageBotContainer");
 			attr(div6, "class", "container mx-auto border bg-container-color rounded p-2 sm:p-6 w-auto max-w-xl");
 		},
 		m(target, anchor) {
@@ -8199,14 +8217,12 @@ function create_if_block(ctx) {
 				if_blocks[current_block_type_index].m(div3, null);
 			}
 
-			append(div6, t3);
-			if (if_block1) if_block1.m(div6, null);
 			current = true;
 		},
 		p(ctx, dirty) {
-			if ((!current || dirty[0] & /*frameIntroduction*/ 256) && raw0_value !== (raw0_value = marked(/*frameIntroduction*/ ctx[8]) + "")) div0.innerHTML = raw0_value;
-			if (dirty[0] & /*editUserReply, completedRounds*/ 65538) {
-				each_value_2 = /*completedRounds*/ ctx[1].slice(0, -1);
+			if ((!current || dirty[0] & /*frameIntroduction*/ 1024) && raw0_value !== (raw0_value = marked(/*frameIntroduction*/ ctx[10]) + "")) div0.innerHTML = raw0_value;
+			if (dirty[0] & /*editUserReply, completedRounds*/ 65544) {
+				each_value_2 = /*completedRounds*/ ctx[3].slice(0, -1);
 				let i;
 
 				for (i = 0; i < each_value_2.length; i += 1) {
@@ -8228,7 +8244,7 @@ function create_if_block(ctx) {
 				each_blocks.length = each_value_2.length;
 			}
 
-			if ((!current || dirty[0] & /*completedRounds*/ 2) && raw1_value !== (raw1_value = marked(/*completedRounds*/ ctx[1][/*completedRounds*/ ctx[1].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
+			if ((!current || dirty[0] & /*completedRounds*/ 8) && raw1_value !== (raw1_value = marked(/*completedRounds*/ ctx[3][/*completedRounds*/ ctx[3].length - 1].slot.ask) + "")) p.innerHTML = raw1_value;			let previous_block_index = current_block_type_index;
 			current_block_type_index = select_block_type_1(ctx);
 
 			if (current_block_type_index === previous_block_index) {
@@ -8236,7 +8252,7 @@ function create_if_block(ctx) {
 					if_blocks[current_block_type_index].p(ctx, dirty);
 				}
 			} else {
-				if (if_block0) {
+				if (if_block) {
 					group_outros();
 
 					transition_out(if_blocks[previous_block_index], 1, 1, () => {
@@ -8247,29 +8263,29 @@ function create_if_block(ctx) {
 				}
 
 				if (~current_block_type_index) {
-					if_block0 = if_blocks[current_block_type_index];
+					if_block = if_blocks[current_block_type_index];
 
-					if (!if_block0) {
-						if_block0 = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
-						if_block0.c();
+					if (!if_block) {
+						if_block = if_blocks[current_block_type_index] = if_block_creators[current_block_type_index](ctx);
+						if_block.c();
 					} else {
-						if_block0.p(ctx, dirty);
+						if_block.p(ctx, dirty);
 					}
 
-					transition_in(if_block0, 1);
-					if_block0.m(div3, null);
+					transition_in(if_block, 1);
+					if_block.m(div3, null);
 				} else {
-					if_block0 = null;
+					if_block = null;
 				}
 			}
 		},
 		i(local) {
 			if (current) return;
-			transition_in(if_block0);
+			transition_in(if_block);
 			current = true;
 		},
 		o(local) {
-			transition_out(if_block0);
+			transition_out(if_block);
 			current = false;
 		},
 		d(detaching) {
@@ -8279,17 +8295,82 @@ function create_if_block(ctx) {
 			if (~current_block_type_index) {
 				if_blocks[current_block_type_index].d();
 			}
-
-			if (if_block1) if_block1.d();
 		}
 	};
 }
 
-// (601:10) {#if userReplyValues.length > 0}
-function create_if_block_8(ctx) {
+// (473:40) 
+function create_if_block_2(ctx) {
+	return {
+		c: noop,
+		m: noop,
+		p: noop,
+		i: noop,
+		o: noop,
+		d: noop
+	};
+}
+
+// (453:47) 
+function create_if_block_1(ctx) {
+	let button;
+
+	return {
+		c() {
+			button = element("button");
+
+			button.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 
+      <div class="text-indigo-600">Loading...</div>`;
+
+			attr(button, "type", "button");
+			attr(button, "class", "bg-indigo-500");
+		},
+		m(target, anchor) {
+			insert(target, button, anchor);
+		},
+		p: noop,
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(button);
+		}
+	};
+}
+
+// (450:2) {#if UIError && showUnfriendlyError}
+function create_if_block(ctx) {
+	let p;
+	let t0;
+	let t1;
+
+	return {
+		c() {
+			p = element("p");
+			t0 = text("Bot failed to load: ");
+			t1 = text(/*UIError*/ ctx[11]);
+			set_style(p, "color", "red");
+		},
+		m(target, anchor) {
+			insert(target, p, anchor);
+			append(p, t0);
+			append(p, t1);
+		},
+		p(ctx, dirty) {
+			if (dirty[0] & /*UIError*/ 2048) set_data(t1, /*UIError*/ ctx[11]);
+		},
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(p);
+		}
+	};
+}
+
+// (508:12) {#if userReplyValues.length > 0}
+function create_if_block_10(ctx) {
 	let div;
 	let p;
-	let t0_value = /*userReplyValues*/ ctx[43].join(", ") + "";
+	let t0_value = /*userReplyValues*/ ctx[45].join(", ") + "";
 	let t0;
 	let t1;
 	let svg;
@@ -8298,7 +8379,7 @@ function create_if_block_8(ctx) {
 	let dispose;
 
 	function click_handler() {
-		return /*click_handler*/ ctx[24](/*rewoundRoundIndex*/ ctx[45]);
+		return /*click_handler*/ ctx[25](/*rewoundRoundIndex*/ ctx[47]);
 	}
 
 	return {
@@ -8311,9 +8392,11 @@ function create_if_block_8(ctx) {
 			path = svg_element("path");
 			attr(path, "d", "M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z");
 			attr(svg, "xmlns", "http://www.w3.org/2000/svg");
-			attr(svg, "class", "inline-block ml-3 h-5 w-5 text-gray-400 hover:text-gray-800");
+			attr(svg, "class", "inline-block ml-3 text-gray-400 hover:text-gray-800");
 			attr(svg, "viewBox", "0 0 20 20");
 			attr(svg, "fill", "currentColor");
+			set_style(svg, "height", "18px");
+			set_style(svg, "width", "18px");
 			attr(p, "class", "mx-4 border-b-2 border-gray-300 text-base inline-block hover:text-gray-800");
 			attr(div, "id", "user-reply-buttons-completed");
 			attr(div, "class", "mt-2");
@@ -8333,7 +8416,7 @@ function create_if_block_8(ctx) {
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty[0] & /*completedRounds*/ 2 && t0_value !== (t0_value = /*userReplyValues*/ ctx[43].join(", ") + "")) set_data(t0, t0_value);
+			if (dirty[0] & /*completedRounds*/ 8 && t0_value !== (t0_value = /*userReplyValues*/ ctx[45].join(", ") + "")) set_data(t0, t0_value);
 		},
 		d(detaching) {
 			if (detaching) detach(div);
@@ -8343,14 +8426,14 @@ function create_if_block_8(ctx) {
 	};
 }
 
-// (590:6) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+// (497:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
 function create_each_block_2(ctx) {
 	let div;
 	let p;
-	let raw_value = marked(/*slot*/ ctx[42].ask) + "";
+	let raw_value = marked(/*slot*/ ctx[44].ask) + "";
 	let t0;
 	let t1;
-	let if_block = /*userReplyValues*/ ctx[43].length > 0 && create_if_block_8(ctx);
+	let if_block = /*userReplyValues*/ ctx[45].length > 0 && create_if_block_10(ctx);
 
 	return {
 		c() {
@@ -8372,12 +8455,12 @@ function create_each_block_2(ctx) {
 			append(div, t1);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*completedRounds*/ 2 && raw_value !== (raw_value = marked(/*slot*/ ctx[42].ask) + "")) p.innerHTML = raw_value;
-			if (/*userReplyValues*/ ctx[43].length > 0) {
+			if (dirty[0] & /*completedRounds*/ 8 && raw_value !== (raw_value = marked(/*slot*/ ctx[44].ask) + "")) p.innerHTML = raw_value;
+			if (/*userReplyValues*/ ctx[45].length > 0) {
 				if (if_block) {
 					if_block.p(ctx, dirty);
 				} else {
-					if_block = create_if_block_8(ctx);
+					if_block = create_if_block_10(ctx);
 					if_block.c();
 					if_block.m(div, t1);
 				}
@@ -8393,8 +8476,8 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (732:43) 
-function create_if_block_7(ctx) {
+// (647:45) 
+function create_if_block_9(ctx) {
 	let p;
 	let t0;
 	let t1;
@@ -8404,7 +8487,7 @@ function create_if_block_7(ctx) {
 		c() {
 			p = element("p");
 			t0 = text("Error: unsupported reply type of ");
-			t1 = text(/*replyType*/ ctx[4]);
+			t1 = text(/*replyType*/ ctx[5]);
 			t2 = text(" received");
 			attr(p, "class", "my-2");
 		},
@@ -8415,7 +8498,7 @@ function create_if_block_7(ctx) {
 			append(p, t2);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*replyType*/ 16) set_data(t1, /*replyType*/ ctx[4]);
+			if (dirty[0] & /*replyType*/ 32) set_data(t1, /*replyType*/ ctx[5]);
 		},
 		i: noop,
 		o: noop,
@@ -8425,8 +8508,8 @@ function create_if_block_7(ctx) {
 	};
 }
 
-// (730:63) 
-function create_if_block_6(ctx) {
+// (645:65) 
+function create_if_block_8(ctx) {
 	let p;
 
 	return {
@@ -8447,8 +8530,8 @@ function create_if_block_6(ctx) {
 	};
 }
 
-// (701:50) 
-function create_if_block_5(ctx) {
+// (613:52) 
+function create_if_block_7(ctx) {
 	let div;
 	let input;
 	let t0;
@@ -8473,7 +8556,7 @@ function create_if_block_5(ctx) {
 			span.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg>`;
 			t3 = space();
 			p = element("p");
-			t4 = text(/*inputError*/ ctx[7]);
+			t4 = text(/*inputError*/ ctx[9]);
 			attr(input, "type", "text");
 			attr(input, "size", "50");
 			attr(span, "class", "askIcon");
@@ -8482,7 +8565,7 @@ function create_if_block_5(ctx) {
 		m(target, anchor) {
 			insert(target, div, anchor);
 			append(div, input);
-			set_input_value(input, /*userText*/ ctx[6]);
+			set_input_value(input, /*userText*/ ctx[8]);
 			append(div, t0);
 			append(div, button);
 			append(div, t2);
@@ -8493,21 +8576,21 @@ function create_if_block_5(ctx) {
 
 			if (!mounted) {
 				dispose = [
-					listen(input, "input", /*input_input_handler*/ ctx[28]),
-					listen(input, "keyup", /*keyup_handler*/ ctx[29]),
+					listen(input, "input", /*input_input_handler*/ ctx[29]),
+					listen(input, "keyup", /*keyup_handler*/ ctx[30]),
 					listen(button, "click", /*handleTextInput*/ ctx[18]),
-					listen(span, "click", /*click_handler_3*/ ctx[30])
+					listen(span, "click", /*click_handler_3*/ ctx[31])
 				];
 
 				mounted = true;
 			}
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*userText*/ 64 && input.value !== /*userText*/ ctx[6]) {
-				set_input_value(input, /*userText*/ ctx[6]);
+			if (dirty[0] & /*userText*/ 256 && input.value !== /*userText*/ ctx[8]) {
+				set_input_value(input, /*userText*/ ctx[8]);
 			}
 
-			if (dirty[0] & /*inputError*/ 128) set_data(t4, /*inputError*/ ctx[7]);
+			if (dirty[0] & /*inputError*/ 512) set_data(t4, /*inputError*/ ctx[9]);
 		},
 		i: noop,
 		o: noop,
@@ -8519,13 +8602,16 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (699:56) 
-function create_if_block_4(ctx) {
+// (607:58) 
+function create_if_block_6(ctx) {
 	let multiselect;
 	let current;
 
 	multiselect = new MultiSelect({
-			props: { replyOptions: /*replyOptions*/ ctx[2] }
+			props: {
+				replyOptions: /*replyOptions*/ ctx[4],
+				botShadowHostId: /*botShadowHostId*/ ctx[1]
+			}
 		});
 
 	multiselect.$on("message", /*multiReplySubmit*/ ctx[15]);
@@ -8540,7 +8626,8 @@ function create_if_block_4(ctx) {
 		},
 		p(ctx, dirty) {
 			const multiselect_changes = {};
-			if (dirty[0] & /*replyOptions*/ 4) multiselect_changes.replyOptions = /*replyOptions*/ ctx[2];
+			if (dirty[0] & /*replyOptions*/ 16) multiselect_changes.replyOptions = /*replyOptions*/ ctx[4];
+			if (dirty[0] & /*botShadowHostId*/ 2) multiselect_changes.botShadowHostId = /*botShadowHostId*/ ctx[1];
 			multiselect.$set(multiselect_changes);
 		},
 		i(local) {
@@ -8558,8 +8645,8 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (666:54) 
-function create_if_block_3(ctx) {
+// (574:56) 
+function create_if_block_5(ctx) {
 	let div1;
 	let div0;
 	let select;
@@ -8567,7 +8654,7 @@ function create_if_block_3(ctx) {
 	let button;
 	let mounted;
 	let dispose;
-	let each_value_1 = /*replyOptions*/ ctx[2];
+	let each_value_1 = /*replyOptions*/ ctx[4];
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value_1.length; i += 1) {
@@ -8588,7 +8675,7 @@ function create_if_block_3(ctx) {
 			button = element("button");
 			button.textContent = "Done";
 			attr(select, "class", "block w-full pl-2 pr-10 text-base font-medium border-gray-300 focus:outline-none focus:ring-primary-color sm:text-sm rounded-md");
-			if (/*selectedReplyIndex*/ ctx[5] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[26].call(select));
+			if (/*selectedReplyIndex*/ ctx[7] === void 0) add_render_callback(() => /*select_change_handler*/ ctx[27].call(select));
 			attr(div0, "class", "w-full sm:max-w-xs");
 			attr(button, "type", "button");
 			attr(button, "class", "mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
@@ -8603,22 +8690,22 @@ function create_if_block_3(ctx) {
 				each_blocks[i].m(select, null);
 			}
 
-			select_option(select, /*selectedReplyIndex*/ ctx[5]);
+			select_option(select, /*selectedReplyIndex*/ ctx[7]);
 			append(div1, t0);
 			append(div1, button);
 
 			if (!mounted) {
 				dispose = [
-					listen(select, "change", /*select_change_handler*/ ctx[26]),
-					listen(button, "click", /*click_handler_2*/ ctx[27])
+					listen(select, "change", /*select_change_handler*/ ctx[27]),
+					listen(button, "click", /*click_handler_2*/ ctx[28])
 				];
 
 				mounted = true;
 			}
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*replyOptions*/ 4) {
-				each_value_1 = /*replyOptions*/ ctx[2];
+			if (dirty[0] & /*replyOptions*/ 16) {
+				each_value_1 = /*replyOptions*/ ctx[4];
 				let i;
 
 				for (i = 0; i < each_value_1.length; i += 1) {
@@ -8640,8 +8727,8 @@ function create_if_block_3(ctx) {
 				each_blocks.length = each_value_1.length;
 			}
 
-			if (dirty[0] & /*selectedReplyIndex*/ 32) {
-				select_option(select, /*selectedReplyIndex*/ ctx[5]);
+			if (dirty[0] & /*selectedReplyIndex*/ 128) {
+				select_option(select, /*selectedReplyIndex*/ ctx[7]);
 			}
 		},
 		i: noop,
@@ -8655,11 +8742,11 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (643:10) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
-function create_if_block_2(ctx) {
+// (551:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+function create_if_block_4(ctx) {
 	let div1;
 	let div0;
-	let each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[2]);
+	let each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[4]);
 	let each_blocks = [];
 
 	for (let i = 0; i < each_value.length; i += 1) {
@@ -8687,8 +8774,8 @@ function create_if_block_2(ctx) {
 			}
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 147460) {
-				each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[2]);
+			if (dirty[0] & /*singleReplyClick, adaptRepliesToText, replyOptions*/ 147472) {
+				each_value = /*adaptRepliesToText*/ ctx[17](/*replyOptions*/ ctx[4]);
 				let i;
 
 				for (i = 0; i < each_value.length; i += 1) {
@@ -8719,10 +8806,10 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (676:18) {#each replyOptions as userReplyValue, userReplyIndex}
+// (584:20) {#each replyOptions as userReplyValue, userReplyIndex}
 function create_each_block_1(ctx) {
 	let option;
-	let t_value = /*userReplyValue*/ ctx[38] + "";
+	let t_value = /*userReplyValue*/ ctx[40] + "";
 	let t;
 	let option_value_value;
 
@@ -8730,7 +8817,7 @@ function create_each_block_1(ctx) {
 		c() {
 			option = element("option");
 			t = text(t_value);
-			option.__value = option_value_value = /*userReplyIndex*/ ctx[40];
+			option.__value = option_value_value = /*userReplyIndex*/ ctx[42];
 			option.value = option.__value;
 		},
 		m(target, anchor) {
@@ -8738,7 +8825,7 @@ function create_each_block_1(ctx) {
 			append(option, t);
 		},
 		p(ctx, dirty) {
-			if (dirty[0] & /*replyOptions*/ 4 && t_value !== (t_value = /*userReplyValue*/ ctx[38] + "")) set_data(t, t_value);
+			if (dirty[0] & /*replyOptions*/ 16 && t_value !== (t_value = /*userReplyValue*/ ctx[40] + "")) set_data(t, t_value);
 		},
 		d(detaching) {
 			if (detaching) detach(option);
@@ -8746,10 +8833,10 @@ function create_each_block_1(ctx) {
 	};
 }
 
-// (646:16) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+// (554:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
 function create_each_block(ctx) {
 	let button;
-	let t0_value = /*userReplyValue*/ ctx[38] + "";
+	let t0_value = /*userReplyValue*/ ctx[40] + "";
 	let t0;
 	let t1;
 	let button_id_value;
@@ -8757,7 +8844,7 @@ function create_each_block(ctx) {
 	let dispose;
 
 	function click_handler_1() {
-		return /*click_handler_1*/ ctx[25](/*userReplyValue*/ ctx[38], /*userReplyIndex*/ ctx[40]);
+		return /*click_handler_1*/ ctx[26](/*userReplyValue*/ ctx[40], /*userReplyIndex*/ ctx[42]);
 	}
 
 	return {
@@ -8767,7 +8854,7 @@ function create_each_block(ctx) {
 			t1 = space();
 			attr(button, "type", "button");
 			attr(button, "class", "w-full inline-flex items-center justify-center px-4 py-2 border border-transparent font-medium rounded-md sm:w-auto sm:text-sm shadow-sm text-white bg-primary-color hover:bg-hover-color focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-hover-color");
-			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[40]);
+			attr(button, "id", button_id_value = "reply-" + /*userReplyIndex*/ ctx[42]);
 		},
 		m(target, anchor) {
 			insert(target, button, anchor);
@@ -8781,7 +8868,7 @@ function create_each_block(ctx) {
 		},
 		p(new_ctx, dirty) {
 			ctx = new_ctx;
-			if (dirty[0] & /*replyOptions*/ 4 && t0_value !== (t0_value = /*userReplyValue*/ ctx[38] + "")) set_data(t0, t0_value);
+			if (dirty[0] & /*replyOptions*/ 16 && t0_value !== (t0_value = /*userReplyValue*/ ctx[40] + "")) set_data(t0, t0_value);
 		},
 		d(detaching) {
 			if (detaching) detach(button);
@@ -8791,53 +8878,27 @@ function create_each_block(ctx) {
 	};
 }
 
-// (745:4) {#if showRestartButton}
-function create_if_block_1(ctx) {
-	let hr;
-	let t;
+function create_fragment$1(ctx) {
 	let div;
-
-	return {
-		c() {
-			hr = element("hr");
-			t = space();
-			div = element("div");
-			attr(hr, "class", "mt-4");
-		},
-		m(target, anchor) {
-			insert(target, hr, anchor);
-			insert(target, t, anchor);
-			insert(target, div, anchor);
-		},
-		d(detaching) {
-			if (detaching) detach(hr);
-			if (detaching) detach(t);
-			if (detaching) detach(div);
-		}
-	};
-}
-
-function create_fragment(ctx) {
 	let current_block_type_index;
 	let if_block;
-	let if_block_anchor;
 	let current;
 
 	const if_block_creators = [
 		create_if_block,
-		create_if_block_9,
-		create_if_block_10,
-		create_if_block_11,
+		create_if_block_1,
+		create_if_block_2,
+		create_if_block_3,
 		create_else_block
 	];
 
 	const if_blocks = [];
 
 	function select_block_type(ctx, dirty) {
-		if (/*showBotUI*/ ctx[10] && !/*showUnfriendlyError*/ ctx[12]) return 0;
-		if (/*showUnfriendlyError*/ ctx[12]) return 1;
+		if (/*UIError*/ ctx[11] && /*showUnfriendlyError*/ ctx[2]) return 0;
+		if (/*loadingInProgress*/ ctx[12] && !/*conversation*/ ctx[13]) return 1;
 		if (/*waitForStartNewConversation*/ ctx[0]) return 2;
-		if (/*showLoadingWaitUI*/ ctx[11]) return 3;
+		if (/*conversation*/ ctx[13]) return 3;
 		return 4;
 	}
 
@@ -8846,12 +8907,13 @@ function create_fragment(ctx) {
 
 	return {
 		c() {
+			div = element("div");
 			if_block.c();
-			if_block_anchor = empty();
+			attr(div, "id", "botShadowTree");
 		},
 		m(target, anchor) {
-			if_blocks[current_block_type_index].m(target, anchor);
-			insert(target, if_block_anchor, anchor);
+			insert(target, div, anchor);
+			if_blocks[current_block_type_index].m(div, null);
 			current = true;
 		},
 		p(ctx, dirty) {
@@ -8878,7 +8940,7 @@ function create_fragment(ctx) {
 				}
 
 				transition_in(if_block, 1);
-				if_block.m(if_block_anchor.parentNode, if_block_anchor);
+				if_block.m(div, null);
 			}
 		},
 		i(local) {
@@ -8891,66 +8953,24 @@ function create_fragment(ctx) {
 			current = false;
 		},
 		d(detaching) {
-			if_blocks[current_block_type_index].d(detaching);
-			if (detaching) detach(if_block_anchor);
+			if (detaching) detach(div);
+			if_blocks[current_block_type_index].d();
 		}
 	};
 }
 
-function setBotSettings(botSettings = {}) {
-	const el = document.getElementById("botContainer");
-	el.style.setProperty("--primary-color", botSettings.primaryColor);
-	el.style.setProperty("--secondary-color", botSettings.secondaryColor);
-	el.style.setProperty("--hover-color", botSettings.hoverColor);
-	el.style.setProperty("--container-color", botSettings.containerBg);
-	el.style.setProperty("--container-border-color", botSettings.containerBorderBg);
-	el.style.fontFamily = botSettings.customerFont;
-}
-
-/* styleListItemsWithImages() => undefined
- * Remove styles (and therefore the bullets) from list items coming from
- * the marked render.
- * Enables users to render pretty images at top of each list item
- * and display them like product or topic cards.
- * Do this if the first element in the li is an
- * img, otherwise do nothing. Only select li elements that are children
- * of ul elements - we don't want to do this to <ol> diagnostic items -
- * seeing the numbering is useful as subsequent steps in history may refer back
- * to earlier ones. Must run after DOM updates. No return value.
- */
-function styleListItemsWithImages() {
-	// Apply mt-12 to all the li elements if they have an image at top
-	let selector = `#conversationHistory ul > li img:first-child, 
-                    #currentAsk ul > li img:first-child`;
-
-	const imgs = document.querySelectorAll(selector);
-
-	if (imgs.length > 0) {
-		// If images appear as first children in a list item,
-		// add margin-top and remove bullets
-		imgs.forEach(img => img.style.marginTop = "3rem");
-
-		// Apply list-none up chain from img => li => ul elements that contain
-		// those images
-		imgs.forEach(img => {
-			img.parentElement.parentElement.style.listStyleType = "none";
-		});
-	}
-}
-
-function instance($$self, $$props, $$invalidate) {
-	let { propBotConfig = null } = $$props;
-	let { propGetConfigFromRemote = false } = $$props;
-	let { localStorageKey } = $$props;
+function instance$1($$self, $$props, $$invalidate) {
 	let { waitForStartNewConversation = false } = $$props;
-
-	/************ variables used in the UI/DOM **********/
-	let localeString; // String: unicode locale string used for language specific sorting
+	let { propBotConfig } = $$props;
+	let { getConfigFromRemote = false } = $$props;
+	let { localStorageKey } = $$props;
+	let { botShadowHostId } = $$props;
+	let { showUnfriendlyError = true } = $$props;
 
 	let completedRounds; // Object: populates conversation history in view
 	let replyOptions; // Array of Strings: replies the user can select from
-	let showReplyOptions; // boolean: true diplays the replyOptionsModal, false hides
 	let replyType; // String: one of slotTypeEnum in BotConfig.js
+	let showReplyOptions; // boolean: true diplays the replyOptionsModal, false hides
 	let selectedReplyIndex; // Integer: index of reply user selected in single select
 	let userText = ""; // String: free text user input
 	let inputError = ""; // String: error displayed for free text user input
@@ -8959,126 +8979,92 @@ function instance($$self, $$props, $$invalidate) {
 	// presentation, before any slots get shown.
 	let frameIntroduction = "";
 
-	let UIError = ''; // error show in UI, e.g. if botConfig doesn't load or invalid
+	let UIError = null; // error show in UI, e.g. if botConfig doesn't load or invalid
+	let loadingInProgress = false;
 
-	// Show the conversation in the view. Will be true if botConfig and conversation
-	// successfully loaded, false otherwise. If false usually an error condition
-	// like botConfig failed to load OR waitForStartNewConversation is true so 
-	// we only want to show UI if getBotConfig() loaded from localStorage.
-	let showBotUI = waitForStartNewConversation ? false : true;
+	// UI doesn't use this directly, but not being null signals that UI can be
+	// displayed in the if block
+	let conversation = null;
 
-	// Show loading indicator when in process of fetching
-	// botConfig from remote.
-	let showLoadingWaitUI = false;
-
-	// Show unfriendly error if loading botConfig or conversation fails.
-	// If set to false, could be a bug, botConfig version issue, or some
-	// other botConfig loading issue.
-	let showUnfriendlyError = false;
-
-	// Displays a restart conversation button if true.
-	// Only needed for testing to restart the bot in a multi bot scenario like
-	// in storybook. Real user doesn't have this situation, and can just click
-	// edit on whatever userReply they want to change to rewind the bot.
-	let showRestartButton = propBotConfig ? true : false;
-
-	/********* Constants ******************/
 	// Currently the page.support publisher is able to create botConfigs
-	// for multiple frames. However this Bot.svelte component does 
-	// not support multiple frames - it lacks a way to for the user to 
-	// transition from one frame to another. So at UI load time we 
-	// need to set currentFrame to the first frame in botConfig so that 
-	// startNewConversation() knows which frame to execute. Frames
+	// for multiple frames. However this Bot.svelte component does
+	// not support multiple frames - it lacks a way to for the user to
+	// transition from one frame to another. So at UI load time we
+	// need to set currentFrame to the first frame in botConfig so it knows 
+	// which frame to execute. Frames
 	// are keyed with a UUID assigned by the publisher, so botConfig has
 	// a startFrameId property to tell us where to start. currentFrame is
 	// set at botConfig load time in loadBotConfig();
 	let currentFrame = null;
 
-	/********* Lifecycle Event handling *************/
-	// Responsible for all GUI loading scenarios in this component
-	loadUI(propBotConfig, localStorageKey, propGetConfigFromRemote, waitForStartNewConversation);
+	/********* Constants ******************/
+	/*********** Lifecycle functions ************/
+	// init() loads data needed to render UI. Only call this if we are ready to
+	// fetch a botConfig and start a conversation. So if waitForStartNewConversation
+	// is true, don't call it. The parent site will call startNewConversation()
+	// in Bot, which will call init()
+	if (!waitForStartNewConversation) init(propBotConfig, false);
 
-	/* loadUI() => undefined
- * Load botConfig, conversation, and show view.
- * Args:
- *   localStorageKey: REQUIRED: String, unique to this bot
- *   propBotConfig: OPTIONAL: instance of BotConfig from state/BotConfig.js
- *   propGetConfigFromRemote: REQUIRED: Boolean true if BotConfig should
- *     be fetched from remote URL
- *   waitForStartNewConversation: REQUIRED: Boolean true if UI should NOT be
- *     loaded until startConversation() is called with a BotConfig argument.
- * Scenarios:
- *  a) Containing site wants to load Bot component but not display it until
- *     runBot() is called and (usually) a botConfig is passed in via
- *     startNewConversation().
- *     Args:
- *         propBotConfig: null
- *         waitForStartNewConversation: true
- *         propGetConfigFromRemote: true | false
- *     loadUI() should display nothing until startNewConversation() called.
- *     If there is a cached botConfig in localStorage it should be used. This
- *     covers the case where user refreshed page after startConversation() was
- *     called.
- *     waitForStartNewConversation: true allows <Bot> to be added to the DOM
- *     and a binding to <Bot> be avaliable to caller so it can be used. Without
- *     this option you get into a catch-22 where the component can't be rendered
- *     because it lacks a BotConfig (if no remote), but component has to be
- *     rendered for the loading code to get a binding to the component to call
- *     startNewConversation.
- *  b) Containing site wants to load Bot and start conversation at load time.
- *     loadUI() displays Bot at component load time. BotConfig can come from
- *     propBotConfig or remote.
- *     Args:
- *       propBotConfig: BotConfig object
- *       propGetConfigFromRemote: false
- *       waitForStartNewConversation: false
- *  c) NOT IMPLEMENTED: Containing site wants to load Bot and get botConfig from remote then
- *     start conversation. getConfigFromRemote should be true and a remote
- *     URL provided to Bot via a prop. NOT IMPLEMENTED YET. loadUI() displays
- *     Bot at start of conversation after remote fetch. Show spinner during
- *     remote fetch. TODO: change getConfigFromRemote into null | URL so
- *     caller can pass in as a prop to getBotConfig()
- *     Args:
- *      propBotConfig: null
- *      propGetConfigFromRemote: URL
- *      waitForStartNewConversation: false | true. If true startNewConversation
- *      should not pass in a BotConfig.
+	/* Initialize the UI and its variables. First it loads botConfig, then
+ * the conversation object, then the UI.
+ * Called in two scenarios:
+ *   1. when this component is loaded into DOM, in which case it tries to
+ *      acquire a botConfig from localStorage or remote.
+ *   2. by startNewConversation() which is triggered by the parent site. In
+ *      this case, a botConfig MAY be passed in - if so use it, if not try
+ *      to acquire from localStorage or remote as in 1.
  *
  */
-	async function loadUI(
-		propBotConfig,
-	localStorageKey,
-	getConfigFromRemote,
-	waitForStartNewConversation
-	) {
+	/*************** data loading functions **************/
+	/* init()
+ * load botConfig and then conversation object so UI can be displayed
+ * Args:
+ *   botConfig: OPTIONAL: if not present will try to load one from remote.
+ *              will error if not found on remote or in localStorage
+ *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+ *              even if one was ongoing. By default continues any existing 
+ *              conversation (or if set to false)
+ */
+	async function init(botConfig = null, startNewConversation = false) {
+		// if botConfig not passed in from Bot.startNewConversation calling
+		// this function, then load it from the prop or remote.  throw if fails.
 		try {
-			const botConfig = loadBotConfig(propBotConfig, getConfigFromRemote, localStorageKey, waitForStartNewConversation);
+			// try to get from localstorage or remote
+			botConfig = await loadBotConfig(botConfig, getConfigFromRemote, localStorageKey);
 
-			if (botConfig) {
-				let conversation = loadConversation(botConfig);
-				$$invalidate(10, showBotUI = true);
+			currentFrame = botConfig.startFrameId; // set frame manually since only one now
+			$$invalidate(13, conversation = loadConversation(botConfig, startNewConversation));
+
+			if (conversation) {
 				await tick();
-
-				// setBotSettings requires the DOM in place and the conversation
-				// object to set custom color and font properties
 				setBotSettings(conversation.botSettings);
-			} else if (!waitForStartNewConversation) {
-				// no BotConfig and we are NOT waiting on caller to call
-				// startNewConversation and pass in a BotConfig, so show error in UI. 
-				// This generally shouldn't happen if no bugs and caller passed in all
-				// the required props.
-				throw new invalidBotConfig(`getBotConfig() failed to acquire a botConfig from localStorage
-          and remote and waitForStartNewConversation prop was false`);
+			} else {
+				throw Error(`Failed to load conversation`);
 			}
 		} catch(e) {
-			console.log(`botconfig load error: ${e}`);
-			$$invalidate(9, UIError = e);
-			$$invalidate(12, showUnfriendlyError = true);
+			console.error(`Error in caught in botConversationUI.svelte init(): ${e}`);
+			$$invalidate(11, UIError = e);
 		}
-	} // if we get here there is no botConfig, and waitForStartNewConversation
-	// is true, so the if block in the html below should show nothing.
+	}
 
-	/* loadBotConfig() => botConfig || null
+	/* startNewConversation()
+ * Turns off waitForStartNewConversation then runs init. Used by parent 
+ * component's startNewConversation() function.
+ * Args:
+ *   botConfig: OPTIONAL: if not present will try to load one from remote.
+ *              will error if not found on remote or in localStorage
+ *   startNewConversation: OPTIONAL: if true, will start a new conversation, 
+ *              even if one was ongoing. By default continues any existing 
+ *              conversation (or if set to false)
+ */
+	function startNewConversation(botConfig = null, startNewConversation = false) {
+		// set to false otherwise won't display anything due to if clause below
+		$$invalidate(0, waitForStartNewConversation = false);
+
+		init(botConfig, startNewConversation);
+	}
+
+	/* loadBotConfig() => botConfig || raises invalidBotConfig()
  * Acquire a botConfig from wherever it can be found:
  * Args:
  *   botConfig: OPTIONAL: instance of botConfig, could be passed in from prop
@@ -9091,34 +9077,27 @@ function instance($$self, $$props, $$invalidate) {
  *   2. if botConfig arg not present and getConfigFromRemote is false, check
  *      localStorage and use that.  If not present in localStorage, error.
  *   3. if botConfig arg not present and getConfigFromRemote is true and
- *      not present in localStorage, go to remote. 
- * 
+ *      not present in localStorage, go to remote.
+ *
  *  Note that the caller of this function is responsible for raising errors
  *  if botConfig acquisition fails.
  */
-	function loadBotConfig(botConfig, getConfigFromRemote, localStorageKey, waitForStartNewConversation) {
+	function loadBotConfig(botConfig, getConfigFromRemote, localStorageKey) {
 		if (botConfig && versionCompatible(botConfig.version)) {
 			saveBotState(botConfig, localStorageKey); // given new botConfig so save to localStorage
-			currentFrame = botConfig.startFrameId;
 			return botConfig;
 		} else {
-			// show loading UI only if caller is ok with UI showing
-			if (!waitForStartNewConversation) $$invalidate(11, showLoadingWaitUI = true);
-
-			// get BotConfig from localStorage or remote if getConfigFromRemote is true
-			botConfig = getBotConfig(false, getConfigFromRemote, localStorageKey, waitForStartNewConversation);
-
-			$$invalidate(11, showLoadingWaitUI = false);
+			$$invalidate(12, loadingInProgress = true); // shows loading indicator until data loaded.
+			botConfig = getBotConfig(getConfigFromRemote, localStorageKey);
+			$$invalidate(12, loadingInProgress = false); // remove loading indicator once data loaded.
 
 			if (botConfig) {
-				currentFrame = botConfig.startFrameId;
 				return botConfig;
 			}
 		}
 
-		// if we get here, all routes to getting botConfig have failed - caller
-		// should raise error dependending on scenario.
-		return null;
+		// if we get here, all routes to getting botConfig have failed
+		throw new invalidBotConfig(`loadBotConfig() failed to acquire a botConfig from localStorage and remote`);
 	}
 
 	/* loadConversation() => conversation object || null
@@ -9129,83 +9108,39 @@ function instance($$self, $$props, $$invalidate) {
  *
  * Args:
  *   - botConfig: REQUIRED: instance of botConfig
- *   - getConfigFromRemote: REQUIRED: bool. if true, initConversation call here will
- *     try to get botConfig from remote if it doesn't find one in localStorage.
- *     See scenarios at top of this file for what to set to.
+ *   - startNewConversation: OPTIONAL: bool. if true, initConversation()
+ *     will be run and new conversation started. If false, will try to continue
+ *     existing conversation unless there is no on going conversation, in
+ *     which case will start a new one. Setting to true enables Bot.svelte
+ *     to offer the startNewConversation prop to let the parent site control
+ *     when conversations are started.
  *
  * Returns conversation object - mostly to enable setBotSettings() and
  * populates state in browser's localstorage and populates
  * UI variables to display.
  *
  */
-	function loadConversation(botConfig) {
-		if (!botConfig) {
-			console.log(`Error calling loadConversation(): botConfig arg must be supplied`);
+	function loadConversation(botConfig, startNewConversation = false) {
+		if (!botConfig) throw new invalidBotConfig(`init() in BotConversationUI.svelte 
+    didn't find a valid botConfig passed in as a prop`);
+
+		let conversation;
+
+		// getConversation() gets in progress conversation from sessionStorage or
+		// if not present, create a new conversation that starts from the beginning
+		// with initConversation. Preserves existing conversation across page loads.
+		if (startNewConversation) {
+			conversation = initConversation(botConfig, currentFrame, localStorageKey);
 		} else {
-			// get conversation from sessionStorage or if not present, by
-			// creating a new conversation. Preserves existing conversation
-			// across page loads.
-			let conversation = getConversation(localStorageKey) || initConversation(botConfig, currentFrame, localStorageKey);
-
-			if (conversation) {
-				$$invalidate(8, frameIntroduction = conversation.introduction);
-				localeString = conversation.localeString;
-				populateConversationUI(); // set view variables
-				$$invalidate(10, showBotUI = true); // false by default
-				return conversation;
-			} else {
-				console.log("failed to load conversation in loadConversation()");
-				$$invalidate(10, showBotUI = false);
-				return null;
-			}
+			conversation = getConversation(localStorageKey) || initConversation(botConfig, currentFrame, localStorageKey);
 		}
-	}
 
-	// After any DOM update (usually triggered by a variable here being updated
-	// for instance the bot renders a say, run the listed functions.
-	afterUpdate(() => {
-		styleListItemsWithImages(); // apply non-default style to rendered markdown
-	});
-
-	/* startNewConversation(bot) => undefined
- * Start a new conversation from the beginning, stopping one if its running.
- * Populates all the needed view variables to display a conversation.
- *
- * Args: newBot : OPTIONAL is an instance of the botConfig object.
- *
- * Behavior WRT botConfig sourcing:
- *   1. use newBot if argument present.
- *   2. use propBotConfig if newBot === null (passed in from prop)
- *   3. try to get botConfig from localStorage
- *   4. try fetching botConfig from remote
- *   5. raise error if all that fails.
- */
-	async function startNewConversation(newBot = null) {
-		try {
-			let botConf = loadBotConfig(newBot || propBotConfig, propGetConfigFromRemote, localStorageKey, waitForStartNewConversation);
-
-			if (!botConf) {
-				throw new invalidBotConfig(`startNewConversation() failed to acquire a botConfig from localStorage and remote.`);
-			}
-
-			let conversation = initConversation(botConf, currentFrame, localStorageKey);
-
-			if (conversation) {
-				localeString = conversation.localeString;
-				$$invalidate(8, frameIntroduction = conversation.introduction);
-				populateConversationUI(); // set view variables
-				$$invalidate(10, showBotUI = true);
-				await tick(); // wait for ui to show in DOM
-
-				// set custom color and font properties in case user changed them in publisher mode
-				setBotSettings(conversation.botSettings);
-			} else {
-				throw new invalidBotConfig(`startNewConversation() failed to acquire conversation objectfrom initConversation()`);
-			}
-		} catch(e) {
-			console.log(`startNewConversation() botconfig error: ${e}`);
-			$$invalidate(9, UIError = e);
-			$$invalidate(12, showUnfriendlyError = true);
+		if (conversation) {
+			$$invalidate(10, frameIntroduction = conversation.introduction);
+			populateConversationUI(); // set view variables
+			return conversation;
+		} else {
+			throw new Error("failed to load conversation in loadConversation()");
 		}
 	}
 
@@ -9217,10 +9152,72 @@ function instance($$self, $$props, $$invalidate) {
  */
 	function populateConversationUI() {
 		// empty the input box and error for free text entry in case reused
-		$$invalidate(6, userText = "");
+		$$invalidate(8, userText = "");
 
-		$$invalidate(7, inputError = "");
-		$$invalidate(1, { completedRounds, replyType, replyOptions } = getNextSlot(localStorageKey), completedRounds, $$invalidate(4, replyType), $$invalidate(2, replyOptions));
+		$$invalidate(9, inputError = "");
+		$$invalidate(3, { completedRounds, replyType, replyOptions } = getNextSlot(localStorageKey), completedRounds, $$invalidate(5, replyType), $$invalidate(4, replyOptions));
+	}
+
+	// After any DOM update (usually triggered by a variable here being updated
+	// for instance the bot renders a say, run the listed functions.
+	afterUpdate(() => {
+		styleListItemsWithImages(); // apply non-default style to rendered markdown
+	});
+
+	/* styleListItemsWithImages() => undefined
+ * Remove styles (and therefore the bullets) from list items coming from
+ * the marked render.
+ * Enables users to render pretty images at top of each list item
+ * and display them like product or topic cards.
+ * Do this if the first element in the li is an
+ * img, otherwise do nothing. Only select li elements that are children
+ * of ul elements - we don't want to do this to <ol> diagnostic items -
+ * seeing the numbering is useful as subsequent steps in history may refer back
+ * to earlier ones. Must run after DOM updates. No return value.
+ */
+	function styleListItemsWithImages() {
+		// Apply mt-12 to all the li elements if they have an image at top
+		let selector = `#conversationHistory ul > li img:first-child, 
+                      #currentAsk ul > li img:first-child`;
+
+		const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
+		const imgs = shadowRoot.querySelectorAll(selector);
+
+		if (imgs.length > 0) {
+			// If images appear as first children in a list item,
+			// add margin-top and remove bullets
+			imgs.forEach(img => img.style.marginTop = "3rem");
+
+			// Apply list-none up chain from img => li => ul elements that contain
+			// those images
+			imgs.forEach(img => {
+				img.parentElement.parentElement.style.listStyleType = "none";
+			});
+		}
+	}
+
+	/* setBotSettings() => undefined
+     Arg: REQUIRED instance of botSettings object.
+     Sets client bot look and feel based on BotConfig. To test in storybook
+     select the story, click restart, then refresh the browser.  fontFamily
+     is applied to the whole botContainer element and all its children including
+     buttons, bot and user generated text. Must be called after the DOM is in 
+     place, ie. in an onMount async function. This is done in a js function 
+     to enable botConfig file to set cosmetics.
+   */
+	function setBotSettings(botSettings = {}) {
+		const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
+
+		// shadowRoot only accessible via parent element.
+		const el = shadowRoot.getElementById("botShadowTree");
+
+		if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
+		el.style.setProperty("--primary-color", botSettings.primaryColor);
+		el.style.setProperty("--secondary-color", botSettings.secondaryColor);
+		el.style.setProperty("--hover-color", botSettings.hoverColor);
+		el.style.setProperty("--container-color", botSettings.containerBg);
+		el.style.setProperty("--container-border-color", botSettings.containerBorderBg);
+		el.style.fontFamily = botSettings.customerFont;
 	}
 
 	/***************** DOM EVENT handlers ***************/
@@ -9280,27 +9277,27 @@ function instance($$self, $$props, $$invalidate) {
 	}
 
 	/* Placeholder for future free text entry
- * handleTextInput()
- * Take the string entered by the user in freeTextReply components
- * and handle it.
- * Uses userText value which is the string entered by the user
- *
-function handleTextInput() {
-  try {
-    parseTextInput(userText);
-  } catch (e) {
-    inputError = e;
-    console.log(e.stack);
+   * handleTextInput()
+   * Take the string entered by the user in freeTextReply components
+   * and handle it.
+   * Uses userText value which is the string entered by the user
+   *
+  function handleTextInput() {
+    try {
+      parseTextInput(userText);
+    } catch (e) {
+      inputError = e;
+      console.log(e.stack);
+    }
   }
-}
 
-// handle keyup event on free text entry field for user reply
-function enterKeyOnInput(event) {
-  if (event.key === "Enter") {
-    handleTextInput();
+  // handle keyup event on free text entry field for user reply
+  function enterKeyOnInput(event) {
+    if (event.key === "Enter") {
+      handleTextInput();
+    }
   }
-}
-*/
+  */
 	/********** View Utilities ***********/
 	// If replyOptions is the built in diagnostic 'done', don't need to offer
 	// 'not done', just wait for done click since its a text UI
@@ -9322,7 +9319,7 @@ function enterKeyOnInput(event) {
 		try {
 			parseTextInput(userText);
 		} catch(e) {
-			$$invalidate(7, inputError = e);
+			$$invalidate(9, inputError = e);
 			console.log(e.stack);
 		}
 	}
@@ -9339,41 +9336,43 @@ function enterKeyOnInput(event) {
 
 	function select_change_handler() {
 		selectedReplyIndex = select_value(this);
-		$$invalidate(5, selectedReplyIndex);
+		$$invalidate(7, selectedReplyIndex);
 	}
 
 	const click_handler_2 = () => singleReplyClick(replyOptions[selectedReplyIndex], selectedReplyIndex);
 
 	function input_input_handler() {
 		userText = this.value;
-		$$invalidate(6, userText);
+		$$invalidate(8, userText);
 	}
 
 	const keyup_handler = e => enterKeyOnInput(e);
-	const click_handler_3 = () => $$invalidate(3, showReplyOptions = true);
+	const click_handler_3 = () => $$invalidate(6, showReplyOptions = true);
 
 	$$self.$$set = $$props => {
-		if ('propBotConfig' in $$props) $$invalidate(20, propBotConfig = $$props.propBotConfig);
-		if ('propGetConfigFromRemote' in $$props) $$invalidate(21, propGetConfigFromRemote = $$props.propGetConfigFromRemote);
-		if ('localStorageKey' in $$props) $$invalidate(22, localStorageKey = $$props.localStorageKey);
 		if ('waitForStartNewConversation' in $$props) $$invalidate(0, waitForStartNewConversation = $$props.waitForStartNewConversation);
+		if ('propBotConfig' in $$props) $$invalidate(20, propBotConfig = $$props.propBotConfig);
+		if ('getConfigFromRemote' in $$props) $$invalidate(21, getConfigFromRemote = $$props.getConfigFromRemote);
+		if ('localStorageKey' in $$props) $$invalidate(22, localStorageKey = $$props.localStorageKey);
+		if ('botShadowHostId' in $$props) $$invalidate(1, botShadowHostId = $$props.botShadowHostId);
+		if ('showUnfriendlyError' in $$props) $$invalidate(2, showUnfriendlyError = $$props.showUnfriendlyError);
 	};
 
 	return [
 		waitForStartNewConversation,
+		botShadowHostId,
+		showUnfriendlyError,
 		completedRounds,
 		replyOptions,
-		showReplyOptions,
 		replyType,
+		showReplyOptions,
 		selectedReplyIndex,
 		userText,
 		inputError,
 		frameIntroduction,
 		UIError,
-		showBotUI,
-		showLoadingWaitUI,
-		showUnfriendlyError,
-		showRestartButton,
+		loadingInProgress,
+		conversation,
 		singleReplyClick,
 		multiReplySubmit,
 		editUserReply,
@@ -9381,8 +9380,9 @@ function enterKeyOnInput(event) {
 		handleTextInput,
 		enterKeyOnInput,
 		propBotConfig,
-		propGetConfigFromRemote,
+		getConfigFromRemote,
 		localStorageKey,
+		init,
 		startNewConversation,
 		click_handler,
 		click_handler_1,
@@ -9394,30 +9394,171 @@ function enterKeyOnInput(event) {
 	];
 }
 
-class Bot extends SvelteComponent {
+class BotConversationUI extends SvelteComponent {
 	constructor(options) {
 		super();
 
 		init(
 			this,
 			options,
-			instance,
-			create_fragment,
+			instance$1,
+			create_fragment$1,
 			safe_not_equal,
 			{
-				propBotConfig: 20,
-				propGetConfigFromRemote: 21,
-				localStorageKey: 22,
 				waitForStartNewConversation: 0,
-				startNewConversation: 23
+				propBotConfig: 20,
+				getConfigFromRemote: 21,
+				localStorageKey: 22,
+				botShadowHostId: 1,
+				showUnfriendlyError: 2,
+				init: 23,
+				startNewConversation: 24
 			},
 			null,
 			[-1, -1]
 		);
 	}
 
-	get startNewConversation() {
+	get init() {
 		return this.$$.ctx[23];
+	}
+
+	get startNewConversation() {
+		return this.$$.ctx[24];
+	}
+}
+
+/* src/ui/Bot.svelte generated by Svelte v3.47.0 */
+
+function create_fragment(ctx) {
+	let div;
+
+	return {
+		c() {
+			div = element("div");
+			attr(div, "id", /*botShadowHostId*/ ctx[0]);
+		},
+		m(target, anchor) {
+			insert(target, div, anchor);
+		},
+		p: noop,
+		i: noop,
+		o: noop,
+		d(detaching) {
+			if (detaching) detach(div);
+		}
+	};
+}
+
+const CSS_FILE = './page-support-bot-bundle.css';
+
+function instance($$self, $$props, $$invalidate) {
+	let { waitForStartNewConversation = false } = $$props;
+	let { botConfig = null } = $$props;
+	let { getConfigFromRemote = false } = $$props;
+	let { localStorageKey } = $$props;
+	let { cssFileURI } = $$props;
+
+	/************ variables used in the UI/DOM **********/
+	// reference to BotConversationUI.svelte component. set in init()
+	let botConversationUI;
+
+	// element id that Bot.svelte and BotConversationUI use to perform 
+	// operations against the shadowDOM/shadowRoot. Needs to be unique per
+	// bot so we weave in the key for that, enabling > 1 bot per parent page.
+	const botShadowHostId = `botShadowHost-${localStorageKey}`;
+
+	/********* Lifecycle Event handling *************/
+	onMount(() => {
+		init();
+	});
+
+	// Create Bot UI component, attach to #botShadowRoot, bind the component
+	// reference to startNewConversation
+	function init() {
+		// create shadowRoot
+		const parent = document.getElementById(`botShadowHost-${localStorageKey}`);
+
+		const shadow = parent.attachShadow({ mode: "open" });
+
+		// add link element that loads css to shadowDOM Tree.
+		const link = loadCSS(shadow);
+
+		// attach BotConversationUI component when stylesheet loaded
+		link.onload = attachNewBotUI(shadow);
+	}
+
+	// load CSS and attach to el. Return link to the stylesheet.
+	function loadCSS(el) {
+		const link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = cssFileURI || CSS_FILE;
+		el.appendChild(link);
+		return link;
+	}
+
+	// instantiate component and attach to shadowDOM Tree after css loaded
+	function attachNewBotUI(target) {
+		botConversationUI = new BotConversationUI({
+				target,
+				props: {
+					localStorageKey,
+					getConfigFromRemote,
+					propBotConfig: botConfig,
+					waitForStartNewConversation,
+					botShadowHostId
+				}
+			});
+	}
+
+	/***************** UI functions ***************/
+	// this function is exported so parent sites like publisher can call it and
+	// initiate a new conversation (resetting an old one if ongoing). 
+	// Args:
+	//   newBotConfig: OPTIONAL: instance of botConfig that is used instead of
+	//   the prop botConfig if provided.  Used by publisher to run a config 
+	//   generated by the user without reloading the whole component. 
+	function startNewConversation(newBotConfig = null) {
+		if (newBotConfig === null && botConfig === null) throw new Error(`No botConfig found in startNewConversation(): no prop passed in for botconfig and no argment in the function.`);
+		botConversationUI.startNewConversation(newBotConfig || botConfig, true);
+	}
+
+	$$self.$$set = $$props => {
+		if ('waitForStartNewConversation' in $$props) $$invalidate(1, waitForStartNewConversation = $$props.waitForStartNewConversation);
+		if ('botConfig' in $$props) $$invalidate(2, botConfig = $$props.botConfig);
+		if ('getConfigFromRemote' in $$props) $$invalidate(3, getConfigFromRemote = $$props.getConfigFromRemote);
+		if ('localStorageKey' in $$props) $$invalidate(4, localStorageKey = $$props.localStorageKey);
+		if ('cssFileURI' in $$props) $$invalidate(5, cssFileURI = $$props.cssFileURI);
+	};
+
+	return [
+		botShadowHostId,
+		waitForStartNewConversation,
+		botConfig,
+		getConfigFromRemote,
+		localStorageKey,
+		cssFileURI,
+		startNewConversation
+	];
+}
+
+class Bot extends SvelteComponent {
+	constructor(options) {
+		super();
+
+		init(this, options, instance, create_fragment, safe_not_equal, {
+			waitForStartNewConversation: 1,
+			botConfig: 2,
+			getConfigFromRemote: 3,
+			localStorageKey: 4,
+			cssFileURI: 5,
+			startNewConversation: 6
+		});
+	}
+
+	get startNewConversation() {
+		return this.$$.ctx[6];
 	}
 }
 

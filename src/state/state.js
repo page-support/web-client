@@ -52,16 +52,10 @@ const pkgBotVersion = '__botConfigVersion__';
  * Returns null and logs error if botConfig acquisition or parsing fails.
  * 
  * Args: 
- *   REQUIRED: newConfig is a boolean that defaults to false, 
- *   set to true to force new botConfig to be loaded
  *   REQUIRED: getConfigFromRemote is a bool that tells this function whether 
  *   to try to get a config from remote if its not already there. See the 
  *   scenarios described at top of Bot.svelte for usage.
  *   REQUIRED: localStorageKey is a unique per bot string
- *   REQUIRED: waitForStartNewConversation: boolean: if false, don't error
- *     if no botConfig in localStorage - caller will wait for startNewConversation
- *     to supply it. Called does want to get BotConfig from localStorage if
- *     available, which is why we need to pass this in. 
  * 
  * If not cached, fetch from remote unless this is the beginning of a
  * a new conversation, in which case always fetch from remote. This is
@@ -69,38 +63,25 @@ const pkgBotVersion = '__botConfigVersion__';
  * then forgot the answer or want to take a different path.  Might be
  * significant time between the first (cached) run and the second one.
  */
-function getBotConfig(newConfig, 
-                      getConfigFromRemote, 
-                      localStorageKey,
-                      waitForStartNewConversation) {
-  if (newConfig === undefined || getConfigFromRemote === undefined ||
-    localStorageKey === undefined || waitForStartNewConversation === undefined) {
-      throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument. newConfig=${newConfig}; waitForStartNewConversation= ${waitForStartNewConversation}, getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
+function getBotConfig(getConfigFromRemote, 
+                      localStorageKey) {
+  if (getConfigFromRemote === undefined || localStorageKey === undefined ) {
+      throw new invalidBotConfig(`getBotConfig() in state.js called with missing argument.  getConfigFromRemote=${getConfigFromRemote}; localStorageKey=${localStorageKey}`);
   }
 
-  if (newConfig) {
-    // newConfig forces getting from remote even if we have one locally
-    botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-  } else {
-    // if newConfig is false, only try to get config from remote if not present locally
-    let botJSON = localStorage.getItem(localStorageKey);
-    if (getConfigFromRemote && !botJSON && !waitForStartNewConversation) {
-      botJSON = fetchBotConfigFromRemote(REMOTE_CONFIG_URL, localStorageKey);
-    }
+  let botJSON;
+  // newConfig forces getting from remote even if we have one locally
+  botJSON = getConfigFromRemote ? fetchBotConfigFromRemote(REMOTE_CONFIG_URL, 
+                                                 localStorageKey) :
+                                  localStorage.getItem(localStorageKey);                       ;
 
-    if (botJSON) {
+  if (botJSON) {
       // parse and freeze botJSON since we got something, return
       // Freeze and return botConfig to ensure reusability in new conversation
       const botConfig = Object.freeze(JSON.parse(botJSON));
       if (versionCompatible(botConfig.version)) return botConfig;
-        
-    } else if (!waitForStartNewConversation) {
-      // if we're here, we failed to get botJSON both locally and from remote
-      // AND waitForStartNewConversation is false so caller doesn't want Bot
-      // to get BotConfig from startNewConversation(botConfig) so error.
-      throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote and waitForStartNewConversation prop was false`);
-    }
-    // do nothing if waitForStartNewConversation is true
+  } else {
+    throw new invalidBotConfig(`getBotConfig() in state.js failed to acquire a botConfig from localStorage and remote. getConfigFromRemote=${getConfigFromRemote}, localStorageKey=${localStorageKey}`);
   }
 }
 
