@@ -291,7 +291,7 @@ To update to a new version of Bot
 2. update CHANGELOG.md
 3. update documentation 
 4. update README in bot 
-5. git commit ..
-6. git push
-7. npm run build # to create new .js and .css files for iife use case
+5. npm run build # to create new .js and .css files for iife use case
+6. git commit ..
+7. git push
 8. npm publish # to npm registry
