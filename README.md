@@ -151,7 +151,7 @@ OPTIONAL (required in some circumstances)
 * cssFileURI: URI where the bot's css file is located. The value is used to set the href property of a link that loads the stylesheet. This allows the parent site flexibility about where to put the css file. If not provided, the bot uses the CSS_FILE constant which equals './page-support-bot-bundle.css'. The defaults works if the css file is placed at the top level of your web server's /public directory. Otherwise you'll want to set this property relative to the /public folder.
 * botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
-* propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
+* getConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
 * waitForStartNewConversation is an optional boolean which if true will cause bot to display nothing until the startNewConversation() function is called. Use when you want your site to control when the bot activates and displays on a page. Defaults to false, which means the bot will display at page load with the first round of conversation displayed.
 
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
@@ -177,7 +177,7 @@ function runBot() {
 // until startNewConversation is called.
 <Bot botConfig={null} 
      bind:this={botBinding}
-     propGetConfigFromRemote={false}
+     getConfigFromRemote={false}
      localStorageKey={localStoragePreviewBotKey} 
      waitForStartNewConversation={true} 
 /> 
