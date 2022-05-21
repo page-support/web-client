@@ -77,7 +77,7 @@ scenarios and how to use them from a parent site.
   // assumes the file is in the same directory as the js executables which will
   // be true if bot is imported from an npm package - since both js and css are
   // in the dist folder
-  export let cssFileURI;
+  export let cssFileURI = null;
 
 
 
