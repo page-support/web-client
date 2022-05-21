@@ -19,7 +19,7 @@ There are several ways to integrate Bot into your website. In all cases, Bot nee
 
 * The Bot javascript component in this repository. You can fork this repo or install the component with `npm install page-support-bot` or follow the directions below to add it as an iife file.
 * A configuration file (referred to as "botConfig") that defines the bot's behavior. This file will be produced by a publisher like the one at [publisher.page.support](https://publisher.page.support). Click the download button to get a ES6 module version of the file. In the future this will be loaded from [publisher.page.support](https://publisher.page.support) so the behavior of your bot doesn't require pushing a code release.
-* A [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file. 
+* A [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file. This needs to be added to your website's public folder.
 * If your botConfig includes references to images, you'll need to host them on an server at whatever URLs you used in your markdown.
 
 
@@ -31,7 +31,6 @@ Add the [index.min.js](https://github.com/page-support/web-client/blob/main/dist
 
 ```
 <script src="/index.min.js" ></script>
-<link rel="stylesheet" type="text/css" href="/page-support-bot-bundle.css" />
 
 <script type="module"> 
 
@@ -54,7 +53,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const bot = new PageSupportBot.Bot({
         target: el,
         props: {
-          propBotConfig: botConfig,
+          botConfig: botConfig,
           localStorageKey: 'botNumberOne'
         }
       });
@@ -69,6 +68,8 @@ document.addEventListener("DOMContentLoaded", function() {
 
 ```
 
+See the props section below for configuraiton options you may want to pass into the props object.
+
 
 ### Add Bot to your javascript build pipeline
 
@@ -81,7 +82,7 @@ npm install page-support-bot
 Now add it to your package.json under "dependencies"
 
 ```
-"page-support-bot": "1.0.0"
+"page-support-bot": "x.x.x"
 ```
 
 Import into your javascript application
@@ -96,12 +97,10 @@ import Bot from "page-support-bot";
 import botConfig from "/your-path/to/page.support.botconfig.js"
 ```
 
-Bot imports the stylesheet it needs from the node_modules directory it was installed into: `dist/page-support-bot-bundle.css`. That css file is imported via an @import command in the <style> section of BotConversationUI.svelte. Your bundler must compile that file along with the rest of your site's css into one file so no <link> to that file is needed.
-
 Next add the Bot component to your page's HTML
 
 ```
-<Bot propBotConfig={botConfig} 
+<Bot botConfig={botConfig} 
      bind:this={botBinding} 
      localStorageKey={localStorageKey}
      cssFileURI={"path/to/the/page-support-bot-bundle.css} 
@@ -129,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function() {
       const bot = new PageSupportBot.Bot({
         target: el,
         props: {
-          propBotConfig: botConfig,
+          botConfig: botConfig,
           localStorageKey: 'botNumberOne',
           cssFileURI: 'page-support-bot-bundle.css'
         }
@@ -149,7 +148,7 @@ REQUIRED
 * localStorageKey is the unique key Bot will use to preserve each user's conversation state in the browser. This should be a String unique to each bot in your domain. You can have multiple Bots per domain as long as they have unique keys. This prop is required.
 
 OPTIONAL (required in some circumstances)
-* cssFileURI: URI where the bot's css file is located. The value is used to set the href property of a link that loads the stylesheet. This allows the parent site flexibility about where to put the css file. If not provided, the bot uses the CSS_FILE constant which equals './page-support-bot-bundle.css'. The defaults works if the css file is in the same directory as the js executables. That will be true if bot is imported from an npm package - since both js and css are in the dist folder. 
+* cssFileURI: URI where the bot's css file is located. The value is used to set the href property of a link that loads the stylesheet. This allows the parent site flexibility about where to put the css file. If not provided, the bot uses the CSS_FILE constant which equals './page-support-bot-bundle.css'. The defaults works if the css file is placed at the top level of your web server's /public directory. Otherwise you'll want to set this property relative to the /public folder.
 * botConfig is the js object you imported earlier in your app. Its optional if you are using startNewConversation(botConfig) to initiate Bot. Otherwise required.
 * bind:this={botBinding} is an optional reference to this bot that lets you call functions in the Bot, such as starting a new conversation. If you are not calling startNewConversation() or some other function exported by Bot its not needed. 
 * propGetConfigFromRemote is a optional boolean that is not currently supported - in the future this will let you specify a remote URL from which load the bot definition.
@@ -157,6 +156,7 @@ OPTIONAL (required in some circumstances)
 
 The bot component uses the Svelte javascript framework and tailwindcss framework. See the rollup.config.js, tailwind.config.js, babel.config.js and postcss.config.js files for build configuration requirements.
 
+See the static assets section below for how to enable images and the Bot's css files.
 
 ### Control bot start and botConfig from parent site
 Parent sites might want to control when a bot starts a new conversation, for example with a "Run" button. This button would also restart an existing conversation if one was in progress. You might want to do this without reloading the component. You might also want to pass in a new botConfig when the user clicks "Run" in the parent site. This might be useful for Bot markdown authoring scenarios. For this use case, you'd use code something like this
@@ -175,7 +175,7 @@ function runBot() {
 
 // By setting waitForStartNewConversation to true bot will display nothing
 // until startNewConversation is called.
-<Bot propBotConfig={null} 
+<Bot botConfig={null} 
      bind:this={botBinding}
      propGetConfigFromRemote={false}
      localStorageKey={localStoragePreviewBotKey} 
@@ -193,7 +193,8 @@ The Parent site can add the bot IIFE or js module to the DOM whenever they want.
 ### Add static assets - images and css
 Any static assets referred to in your bot's markdown, such as image tags, must be uploaded to the URLs you added to the markdown. At this time page.support doesn't maintain any static asset servers, so add static assets to your storage bucket or website public directory.  
 
-Don't forget to add the [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file in this repository to the public folder of your web server as described previously.
+Add the [page-support-bot-bundle.css](https://github.com/page-support/web-client/blob/main/dist/page-support-bot-bundle.css) file in this repository to the public folder of your web server. If the file is not at the top level of your public folder, use the cssFileURI property - see the Bot property descriptions above.
+
 
 ### CSS encapsulation
 When you add Bot to your website, its CSS is encapsulated so that your website's global styles do not affect it, and its styles won't affect your website. Encapsulation is achieved by using [ShadowDOM](https://developer.mozilla.org/en-US/docs/Web/Web_Components/Using_shadow_DOM) All of the styles, and nearly all the Bot's UI is attached to the DOM under a shadow host. The shadow host is an empty div added by the Bot component, with the actual Bot html and css attached underneath it. 
