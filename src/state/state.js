@@ -142,9 +142,9 @@ the bot configuration file the bot read: ${version}.`);
  * Args:
  *  localStorageKey: String
  * 
- * Returns true there is a botConfig AND existing conversation saved to 
+ * Returns true if there is a botConfig AND existing conversation saved to 
  * browser.  False otherwise.
- * Used to show UIthat is dependent on existing conversation in progress. Doesn't test for
+ * Used to show UI that is dependent on existing conversation in progress. Doesn't test for
  * status of the conversation, so could be at conversation start, end or anywhere 
  * in between. If true, ensures that loading Bot component will result in UI
  * being shown as the dependencies are in place.
