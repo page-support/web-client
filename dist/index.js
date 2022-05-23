@@ -465,10 +465,10 @@
 
 
     /* versionCompatible(version: String) => boolean
-     * If 2.0.4 is set by rollup, returns
+     * If 2.0.5 is set by rollup, returns
      * true if the version argument is compatible with the bot client code,
      * raises error otherwise. 
-     * If 2.0.4 is not set, then also returns true, i.e. there
+     * If 2.0.5 is not set, then also returns true, i.e. there
      * is no version check. So if the version of rollup.config.js in this app
      * is not being used, and version checking is desired, set it manually at 
      * the top of this file, or implement another way to set it when building.
@@ -485,7 +485,7 @@
      */
     function versionCompatible(version) { 
       // if deployer of Bot is using `npm run build` (i.e. its using the   
-      // already-built files in dist/) 2.0.4 will
+      // already-built files in dist/) 2.0.5 will
       // be set by rollup. If its not set, the constant botConfigVersion
       // at the top of this file will be used. If your build pipeline doesn't use 
       // npm run build, e.g. if you are building Bot into your own website with
@@ -9463,7 +9463,7 @@ pageSupportBotTracker() to your  global namespace.`    );
     	let { botConfig = null } = $$props;
     	let { getConfigFromRemote = false } = $$props;
     	let { localStorageKey } = $$props;
-    	let { cssFileURI } = $$props;
+    	let { cssFileURI = null } = $$props;
 
     	/************ variables used in the UI/DOM **********/
     	// reference to BotConversationUI.svelte component. set in init()

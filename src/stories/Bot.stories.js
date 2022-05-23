@@ -21,6 +21,7 @@ export default {
 import diagnostic_test from '../dialog/tests/subscription.diagnostic.bot.page.support.js'; 
 import multi_select_test from '../dialog/tests/multiSelect.page.support.js';
 import images_test from '../dialog/tests/imagesTest.js';
+import settings_test from '../dialog/tests/settingsTest.js';
 
 /****** stories *****/
 
@@ -56,6 +57,22 @@ export const imagesTest = () => ({
   props: { botConfig: images_test,
            getConfigFromRemote: false,
            localStorageKey: 'imagesTest'
+           }
+   
+});
+
+// Show display green container background, and red primary color (button bg).
+// Note that container border color and secondary-color settings are 
+// unused and the former doesn't work for some reason.
+// Testing customization via settings in botConfig.jsqq
+export const settingsTest = () => ({
+  Component: Bot,
+
+  // Pass props and bindings into component
+
+  props: { botConfig: settings_test,
+           getConfigFromRemote: false,
+           localStorageKey: 'settingsTest'
            }
    
 });

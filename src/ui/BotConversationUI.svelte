@@ -303,7 +303,14 @@
 
   /* setBotSettings() => undefined
        Arg: REQUIRED instance of botSettings object.
-       Sets client bot look and feel based on BotConfig. To test in storybook
+       Sets client bot look and feel based on BotConfig. Does this by setting the
+       the "style" tag on the top level bot container, to override the 
+       other style on that element and below elements. For these styles to work,
+       the tailwind css classes must incorporate them, e.g. "secondary-color"
+       would have to appear in a tailwind class substituting for a tailwind
+       color like "sky", e.g. "bg-secondary-color"
+       
+       To test in storybook
        select the story, click restart, then refresh the browser.  fontFamily
        is applied to the whole botContainer element and all its children including
        buttons, bot and user generated text. Must be called after the DOM is in 
@@ -313,7 +320,7 @@
   function setBotSettings(botSettings = {}) {
     const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
     // shadowRoot only accessible via parent element.
-    const el = shadowRoot.getElementById("botShadowTree");
+    const el = shadowRoot.getElementById("pageBotContainer");
     if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
     el.style.setProperty("--primary-color", botSettings.primaryColor);
     el.style.setProperty("--secondary-color", botSettings.secondaryColor);
@@ -755,7 +762,8 @@
      */
   /* in element class notation, refer as bg-bot-primary-color, text-*, 
       * border-* or whatever shorthand Tailwind uses to indicate where
-      * the class is applied.
+      * the class is applied. The "primary-color" part substitutes for what 
+      * would otherwise be a tailwind standard color name like "white"
       */
   #pageBotContainer {
     /* these defaults are from the colors.sky palette in tailwindcss
