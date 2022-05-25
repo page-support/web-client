@@ -224,7 +224,15 @@ If you make modifications to the Bot then want to deploy the changes to your web
 ### User engagement tracking and website analytics
 A key part of measuring the success of any type of automation is measuring user engagement. You want to know if users are using the automation, and if they are achieving their goals when they use it. Page.support bots will integrate with any user engagement measurement platform that can receive events from the bot, such as Google Analytics. You don't need a new event tracking system, you can use the same one you are using on the bot's parent site (your main website). Bot will send events to it so you can see all your user measurements in one place.
 
-To configure event tracking set the `trackUserReplies` property in your botConfig to 'true'. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. 
+To configure event tracking set the `settings.trackUserReplies` property in your markdown or botConfig to 'true'. When set to true, bot will call a global javascript function called  `pageSupportBotTracker()` and pass in user events to that function. In markdown this looks like
+
+```
+
+<!--
+settings.trackUserReplies: true
+-->
+
+```
 
 Second, add `pageSupportBotTracker()` to your parent site's global javascript namespace. This allows you to use your existing event tracking service's function calls to send the data to your event tracking service. The contents of `pageSupportBotTracker()` will vary based on the user analytics service you are using. For example if you are using Google Analytics GA4 the syntax would be:
 
@@ -261,7 +269,7 @@ There are three eventNames reported:
 * When a user replies, it will use the event name `page_support_bot_reply_click`. It reports both what the bot said in the `say` property and the reply recieved from the user in the `userReplyValues` property. 
 * At the end of the conversation, if the conversation ended without the user abandoning it midway, a conversation session history is sent with the event name `page_support_bot_ended_conversation` This allows you to examine specific user sessions that are otherwise not available when collating individual events like with the prior two event types. 
 
-Note that with all these events, user input is being sent server side in the userReplyValues property. Take care to ensure user PII is properly handled if there is any information uniquely identifying individuals. You can remove anything you don't want to send to your analytics service by adding a filter to the `pageSupportBotTracker()` function.
+Note that with all these events, user input is being sent server side in the userReplyValues property. Take care to ensure user PII is properly handled if there is any information uniquely identifying individuals. You can remove anything you don't want sent to your analytics service by adding a filter to the `pageSupportBotTracker()` function.
 
 Depending on the user analytics service you are using, you may have to translate the eventName and parameter arguments into some other form before sending to your tracking service. With Google Analytics they are the second and third arguments to their gtag function. Note that with GA4 you also have to do some configuration in your Google Analytics account to report custom events.
 
@@ -285,8 +293,7 @@ The bot client and the botConfig file it uses must be on the same major version.
 This package supports most modern browsers including Chrome, Safari, Edge and Firefox. It does not support IE.
 
 ### Package maintainer notes - updating Bot
-To update to a new version of Bot
-# bot root directory
+To update to a new version of Bot do the following in your bot root directory
 0. test in storybook, run automated tests, run `npm run build` to see if there are any errors
 1. increment the bot version number in package.json
 2. update CHANGELOG.md

@@ -459,10 +459,10 @@ invalidBotConfig.prototype = new Error;
 
 
 /* versionCompatible(version: String) => boolean
- * If 2.0.5 is set by rollup, returns
+ * If 2.0.7 is set by rollup, returns
  * true if the version argument is compatible with the bot client code,
  * raises error otherwise. 
- * If 2.0.5 is not set, then also returns true, i.e. there
+ * If 2.0.7 is not set, then also returns true, i.e. there
  * is no version check. So if the version of rollup.config.js in this app
  * is not being used, and version checking is desired, set it manually at 
  * the top of this file, or implement another way to set it when building.
@@ -479,7 +479,7 @@ invalidBotConfig.prototype = new Error;
  */
 function versionCompatible(version) { 
   // if deployer of Bot is using `npm run build` (i.e. its using the   
-  // already-built files in dist/) 2.0.5 will
+  // already-built files in dist/) 2.0.7 will
   // be set by rollup. If its not set, the constant botConfigVersion
   // at the top of this file will be used. If your build pipeline doesn't use 
   // npm run build, e.g. if you are building Bot into your own website with
@@ -8088,7 +8088,7 @@ function get_each_context_2(ctx, list, i) {
 	return child_ctx;
 }
 
-// (660:2) {:else}
+// (667:2) {:else}
 function create_else_block(ctx) {
 	let p;
 
@@ -8110,7 +8110,7 @@ function create_else_block(ctx) {
 	};
 }
 
-// (476:25) 
+// (483:25) 
 function create_if_block_3(ctx) {
 	let div6;
 	let div1;
@@ -8299,7 +8299,7 @@ function create_if_block_3(ctx) {
 	};
 }
 
-// (473:40) 
+// (480:40) 
 function create_if_block_2(ctx) {
 	return {
 		c: noop,
@@ -8311,7 +8311,7 @@ function create_if_block_2(ctx) {
 	};
 }
 
-// (453:47) 
+// (460:47) 
 function create_if_block_1(ctx) {
 	let button;
 
@@ -8337,7 +8337,7 @@ function create_if_block_1(ctx) {
 	};
 }
 
-// (450:2) {#if UIError && showUnfriendlyError}
+// (457:2) {#if UIError && showUnfriendlyError}
 function create_if_block(ctx) {
 	let p;
 	let t0;
@@ -8366,7 +8366,7 @@ function create_if_block(ctx) {
 	};
 }
 
-// (508:12) {#if userReplyValues.length > 0}
+// (515:12) {#if userReplyValues.length > 0}
 function create_if_block_10(ctx) {
 	let div;
 	let p;
@@ -8426,7 +8426,7 @@ function create_if_block_10(ctx) {
 	};
 }
 
-// (497:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
+// (504:8) {#each completedRounds.slice(0, -1) as { slot, userReplyValues }
 function create_each_block_2(ctx) {
 	let div;
 	let p;
@@ -8476,7 +8476,7 @@ function create_each_block_2(ctx) {
 	};
 }
 
-// (647:45) 
+// (654:45) 
 function create_if_block_9(ctx) {
 	let p;
 	let t0;
@@ -8508,7 +8508,7 @@ function create_if_block_9(ctx) {
 	};
 }
 
-// (645:65) 
+// (652:65) 
 function create_if_block_8(ctx) {
 	let p;
 
@@ -8530,7 +8530,7 @@ function create_if_block_8(ctx) {
 	};
 }
 
-// (613:52) 
+// (620:52) 
 function create_if_block_7(ctx) {
 	let div;
 	let input;
@@ -8602,7 +8602,7 @@ function create_if_block_7(ctx) {
 	};
 }
 
-// (607:58) 
+// (614:58) 
 function create_if_block_6(ctx) {
 	let multiselect;
 	let current;
@@ -8645,7 +8645,7 @@ function create_if_block_6(ctx) {
 	};
 }
 
-// (574:56) 
+// (581:56) 
 function create_if_block_5(ctx) {
 	let div1;
 	let div0;
@@ -8742,7 +8742,7 @@ function create_if_block_5(ctx) {
 	};
 }
 
-// (551:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
+// (558:12) {#if replyType === slotTypeEnum.diagnostic || (replyType === slotTypeEnum.single && replyOptions[0] === BUILT_IN_REPLIES.done[0])}
 function create_if_block_4(ctx) {
 	let div1;
 	let div0;
@@ -8806,7 +8806,7 @@ function create_if_block_4(ctx) {
 	};
 }
 
-// (584:20) {#each replyOptions as userReplyValue, userReplyIndex}
+// (591:20) {#each replyOptions as userReplyValue, userReplyIndex}
 function create_each_block_1(ctx) {
 	let option;
 	let t_value = /*userReplyValue*/ ctx[40] + "";
@@ -8833,7 +8833,7 @@ function create_each_block_1(ctx) {
 	};
 }
 
-// (554:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
+// (561:18) {#each adaptRepliesToText(replyOptions) as userReplyValue, userReplyIndex}
 function create_each_block(ctx) {
 	let button;
 	let t0_value = /*userReplyValue*/ ctx[40] + "";
@@ -9198,7 +9198,14 @@ function instance$1($$self, $$props, $$invalidate) {
 
 	/* setBotSettings() => undefined
      Arg: REQUIRED instance of botSettings object.
-     Sets client bot look and feel based on BotConfig. To test in storybook
+     Sets client bot look and feel based on BotConfig. Does this by setting the
+     the "style" tag on the top level bot container, to override the 
+     other style on that element and below elements. For these styles to work,
+     the tailwind css classes must incorporate them, e.g. "secondary-color"
+     would have to appear in a tailwind class substituting for a tailwind
+     color like "sky", e.g. "bg-secondary-color"
+     
+     To test in storybook
      select the story, click restart, then refresh the browser.  fontFamily
      is applied to the whole botContainer element and all its children including
      buttons, bot and user generated text. Must be called after the DOM is in 
@@ -9209,7 +9216,7 @@ function instance$1($$self, $$props, $$invalidate) {
 		const shadowRoot = document.getElementById(botShadowHostId).shadowRoot;
 
 		// shadowRoot only accessible via parent element.
-		const el = shadowRoot.getElementById("botShadowTree");
+		const el = shadowRoot.getElementById("pageBotContainer");
 
 		if (!el) throw Error(`setBotSettings() didn't find #botShadowTree in UI`);
 		el.style.setProperty("--primary-color", botSettings.primaryColor);
